@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 /* Tablet UI script for Trilium's mobile layout. Note "tablet_ui.js", label #widget; its styles are in
    "tablet_ui.css" (#appCss). Labelled #widget (not #run=mobileStartup) so that Trilium runs it
    before it builds the layout: the top-bar tools appear together with the bar. Returns no widget.

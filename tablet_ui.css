@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
 /* Tablet UI for Trilium's mobile layout (made on an 11-inch Android tablet: 1385 x 866 dp landscape, 866 x 1385 dp
    portrait). Note "tablet_ui.css", label #appCss; its script is "tablet_ui.js" (#widget).
    Turn it off: rename the label to #disabled:appCss and restart the app. Every rule is scoped to body.mobile and to

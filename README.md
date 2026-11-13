@@ -60,3 +60,7 @@ To turn it off, rename the labels to `#disabled:appCss` and `#disabled:widget` a
 Upstream discussion: [TriliumNext/Trilium#12609](https://github.com/TriliumNext/Trilium/issues/12609) (feature
 request) and [#12610](https://github.com/TriliumNext/Trilium/pull/12610) (draft pull request for the navigation rail
 and docked panels).
+
+## License
+
+[GNU Affero General Public License v3.0](LICENSE) or later, the same licence as Trilium.
