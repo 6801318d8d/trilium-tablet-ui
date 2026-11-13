@@ -1,0 +1,1021 @@
+/* Tablet UI for Trilium's mobile layout (made on an 11-inch Android tablet: 1385 x 866 dp landscape, 866 x 1385 dp
+   portrait). Note "tablet_ui.css", label #appCss; its script is "tablet_ui.js" (#widget).
+   Turn it off: rename the label to #disabled:appCss and restart the app. Every rule is scoped to body.mobile and to
+   widths of 700 dp or more, so phones and the desktop layout are untouched. */
+
+body.mobile {
+  --tui-accent: #2e7d43;
+  --tui-accent-text: #ffffff;
+  --tui-active-bg: rgba(46, 125, 67, .12);
+  --tui-label-font: 500 11px/1.15 var(--main-font-family, system-ui, sans-serif);
+}
+
+/* ------------------------------------------------------------------------------------------------------------
+   Launcher labels (both orientations): the icon is the button's ::before, the label its ::after
+   ------------------------------------------------------------------------------------------------------------ */
+@media (min-width: 700px) {
+  body.mobile #launcher-pane .launcher-button,
+  body.mobile #launcher-pane .global-menu-button,
+  body.mobile #launcher-pane .sync-status-widget {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    border-radius: 14px;
+    font-size: 23px;
+  }
+  /* Menu's button has its own padding: without it, its label lines up with the others */
+  body.mobile #launcher-pane .global-menu-button { padding: 0 !important; }
+  body.mobile #launcher-pane .launcher-button::after,
+  body.mobile #launcher-pane .global-menu-button::after,
+  body.mobile #launcher-pane .sync-status-widget::after {
+    font: var(--tui-label-font);
+    letter-spacing: .01em;
+    color: var(--launcher-pane-text-color, currentColor);
+    white-space: nowrap;
+  }
+  body.mobile #launcher-pane .launcher-button.bx-file-blank::after { content: "New"; }
+  body.mobile #launcher-pane .launcher-button.bx-search::after { content: "Search"; }
+  body.mobile #launcher-pane .launcher-button.bx-calendar-star::after { content: "Today"; }
+  body.mobile #launcher-pane .launcher-button.bx-history::after { content: "Recent"; }
+  body.mobile #launcher-pane .right-dropdown-widget[aria-label="Bookmarks"] .launcher-button::after { content: "Bookmarks"; }
+  body.mobile #launcher-pane .right-dropdown-widget[aria-label="Calendar"] .launcher-button::after { content: "Calendar"; }
+  body.mobile #launcher-pane .global-menu-button::after { content: "Menu"; }
+  body.mobile #launcher-pane .sync-status-widget::after { content: "Sync"; }
+  /* the tab switcher kept its count inside the icon: it becomes the label */
+  body.mobile #launcher-container .mobile-tab-switcher::after {
+    content: "Tabs " attr(data-tab-count);
+    position: static;
+    transform: none;
+    font-size: 11px;
+  }
+  /* no highlight left behind after a tap (focus stays on the button once its menu closes) */
+  body.mobile #launcher-pane .launcher-button:focus:not(:active),
+  body.mobile #launcher-pane .global-menu-button:focus:not(:active),
+  body.mobile #launcher-pane .global-menu-button[aria-expanded="false"] { background: transparent !important; }
+  body.mobile #launcher-pane .launcher-button:active,
+  body.mobile #launcher-pane .global-menu-button:active { background: var(--tui-active-bg) !important; }
+  body.mobile #launcher-pane .sync-status-widget .sync-status { display: flex; justify-content: center; font-size: 23px; }
+
+  /* "Notes" (script launcher, icon bx-sitemap): opens and closes the note tree; green while the tree is open
+     (tablet_ui.js sets .on) */
+  body.mobile #launcher-pane .launcher-button.bx-sitemap::after { content: "Notes"; }
+  body.mobile #launcher-pane .launcher-button.bx-sitemap.on,
+  body.mobile #launcher-pane .launcher-button.bx-sitemap.on:focus { background: var(--tui-active-bg) !important; color: var(--tui-accent); }
+  body.mobile #launcher-pane .launcher-button.bx-sitemap.on::after { color: var(--tui-accent); font-weight: 600; }
+  /* Menu, while its menu is open: the same green as Notes while the tree is open */
+  body.mobile #launcher-pane .global-menu-button[aria-expanded="true"],
+  body.mobile #launcher-pane .global-menu-button[aria-expanded="true"]:focus { background: var(--tui-active-bg) !important; color: var(--tui-accent); }
+  body.mobile #launcher-pane .global-menu-button[aria-expanded="true"]::after { color: var(--tui-accent); font-weight: 600; }
+  /* hover tooltips (launcher titles, "Go to … (Alt+←)") are for the mouse: none on the tablet */
+  body.mobile .tooltip { display: none !important; }
+}
+/* portrait keeps the title bar's "‹" for the tree */
+@media (max-width: 991px) {
+  body.mobile #launcher-pane .launcher-button.bx-sitemap { display: none !important; }
+}
+/* landscape: the tree is opened from the rail, so the title bar loses its toggle */
+@media (min-width: 992px) {
+  body.mobile .note-split .title-row .toggle-sidebar-button { display: none !important; }
+}
+
+/* "Notes edited on this day" on day notes: hidden on the tablet, and with it the
+   row that holds it, which otherwise stays as 24 dp of empty padding under the top bar */
+body.mobile .note-split .collapsible.edited-notes { display: none !important; }
+body.mobile .note-split .title-actions:not(:has(> :not(.edited-notes))) { display: none !important; }
+
+/* ------------------------------------------------------------------------------------------------------------
+   Landscape (992 dp and wider): the launch bar becomes a navigation rail on the left
+   ------------------------------------------------------------------------------------------------------------ */
+@media (min-width: 992px) {
+  body.mobile #root-widget { flex-direction: row-reverse !important; }
+  body.mobile #mobile-bottom-bar {
+    flex: 0 0 84px;
+    width: 84px;
+    height: 100%;
+    border-top: 0;
+    border-inline-end: 1px solid var(--main-border-color);
+    padding: 0;
+  }
+  body.mobile #launcher-pane.horizontal {
+    flex-direction: column !important;
+    align-items: center;
+    width: 84px;
+    height: 100% !important;
+    padding: 12px 0 calc(12px + env(safe-area-inset-bottom, 0px));
+    gap: 4px;
+  }
+  body.mobile #launcher-pane.horizontal #launcher-container {
+    flex-direction: column !important;
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: flex-start !important;
+    gap: 4px;
+    width: 100%;
+    /* the buttons fit the column: no scrolling (a 2 px overflow showed Android's scrollbar between Sync and Menu) */
+    overflow: hidden !important;
+  }
+  body.mobile #launcher-pane.horizontal .launcher-button,
+  body.mobile #launcher-pane.horizontal .global-menu-button,
+  body.mobile #launcher-pane.horizontal .sync-status-widget {
+    width: 70px !important;
+    height: 62px !important;
+    margin: 0 !important;
+  }
+  body.mobile #launcher-pane.horizontal .right-dropdown-widget { width: 70px !important; height: 62px !important; margin: 0 !important; justify-content: center; }
+  /* sync state sits at the bottom of the rail, right above Menu */
+  body.mobile #launcher-pane.horizontal .sync-status-widget { order: 99; margin-top: auto !important; }
+  /* Menu (the app menu) opens the rail at the top; Sync closes it at the bottom */
+  body.mobile #launcher-pane.horizontal .global-menu {
+    order: -1;
+    height: 62px !important;
+    margin: 0;
+  }
+}
+
+/* ------------------------------------------------------------------------------------------------------------
+   Portrait on the tablet (700-991 dp): bottom bar with labels, New raised in the middle
+   ------------------------------------------------------------------------------------------------------------ */
+@media (min-width: 700px) and (max-width: 991px) {
+  /* the raised New button sticks out of the bar */
+  body.mobile #mobile-bottom-bar,
+  body.mobile #launcher-pane.horizontal,
+  body.mobile #launcher-pane.horizontal #launcher-container,
+  body.mobile #launcher-pane.horizontal .launcher-button.bx-file-blank { overflow: visible !important; contain: none !important; }
+  body.mobile #launcher-pane.horizontal {
+    height: auto !important;
+    min-height: 74px;
+    align-items: center;
+    padding: 6px 8px;
+  }
+  body.mobile #launcher-pane.horizontal #launcher-container { justify-content: space-evenly; align-items: center; }
+  body.mobile #launcher-pane.horizontal .global-menu { align-self: center; height: 62px; display: flex; align-items: center; }
+  body.mobile #launcher-pane.horizontal .launcher-button,
+  body.mobile #launcher-pane.horizontal .global-menu-button,
+  body.mobile #launcher-pane.horizontal .sync-status-widget,
+  body.mobile #launcher-pane.horizontal .right-dropdown-widget { width: 78px !important; height: 62px !important; }
+  /* five items: Search, Today, New, Tabs, Sync (+ Menu); Recent and Bookmarks stay in the rail only */
+  body.mobile #launcher-pane.horizontal .launcher-button.bx-history,
+  body.mobile #launcher-pane.horizontal .right-dropdown-widget[aria-label="Bookmarks"] { display: none !important; }
+  body.mobile #launcher-pane.horizontal .launcher-button.bx-search { order: 1; }
+  body.mobile #launcher-pane.horizontal .launcher-button.bx-calendar-star { order: 2; }
+  body.mobile #launcher-pane.horizontal .launcher-button.bx-file-blank { order: 3; }
+  body.mobile #launcher-pane.horizontal .mobile-tab-switcher { order: 4; }
+  body.mobile #launcher-pane.horizontal .sync-status-widget { order: 5; }
+  body.mobile #launcher-pane.horizontal .launcher-button.bx-file-blank::before {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    margin-top: -22px;
+    border-radius: 17px;
+    background: var(--tui-accent);
+    color: var(--tui-accent-text);
+    box-shadow: 0 6px 16px rgba(46, 125, 67, .32);
+  }
+}
+
+/* ------------------------------------------------------------------------------------------------------------
+   Text notes: a reading column with real side margins (tablet widths)
+   ------------------------------------------------------------------------------------------------------------ */
+@media (min-width: 700px) {
+  body.mobile .note-split.type-text .note-detail-editable-text,
+  body.mobile .note-split.type-text .note-detail-readonly-text { padding-inline: 24px; padding-top: 20px; }
+  body.mobile .note-split.type-text .note-detail-editable-text-editor,
+  body.mobile .note-split.type-text .note-detail-readonly-text-content,
+  body.mobile .note-split.type-text .inline-title {
+    max-width: 720px;
+    margin-inline: auto;
+  }
+  body.mobile .note-split .title-row { padding-inline-start: 8px; }
+
+  /* the "…" note menu opens as a box under its button instead of a full-width sheet */
+  body.mobile .note-actions .dropdown-menu.mobile-bottom-menu.show {
+    top: calc(64px + env(safe-area-inset-top, 0px)) !important;
+    bottom: auto !important;
+    left: auto !important;
+    right: 12px !important;
+    width: 380px !important;
+    max-height: calc(100% - 120px) !important;
+    overflow-y: auto;
+    border-radius: 18px !important;
+    box-shadow: 0 12px 36px rgba(15, 25, 20, .22) !important;
+  }
+}
+
+/* ------------------------------------------------------------------------------------------------------------
+   Canvas notes: touch-first Excalidraw
+   ------------------------------------------------------------------------------------------------------------ */
+@media (min-width: 700px) {
+  /* bigger touch targets for every Excalidraw button */
+  body.mobile .excalidraw { --default-button-size: 2.75rem; --default-icon-size: 1.25rem; }
+  /* no keyboard shortcuts and no mouse hints on a tablet */
+  body.mobile .excalidraw .ToolIcon__keybinding,
+  body.mobile .excalidraw .HintViewer,
+  body.mobile .excalidraw .dropdown-menu-item__shortcut { display: none !important; }
+
+  /* one control per corner, nothing else: Excalidraw's own menu (☰), Library and help (?) are hidden; Trilium's "…"
+     menu has Export note for the image export */
+  body.mobile .excalidraw .main-menu-trigger,
+  body.mobile .excalidraw .layer-ui__wrapper__top-right,
+  body.mobile .excalidraw .layer-ui__wrapper__footer { display: none !important; }
+
+  /* tools: a compact bar docked to the bottom edge (centred; in landscape on the space that the right panel leaves
+     free, see below), coloured like the rail, with Trilium-sized icons */
+  body.mobile .excalidraw .App-menu_top .shapes-section {
+    position: absolute;
+    left: 50%;
+    right: auto;
+    bottom: -16px;          /* the top layer is inset by 16 px */
+    top: auto;
+    transform: translateX(-50%);
+    z-index: 3;
+  }
+  body.mobile .excalidraw .App-toolbar {
+    display: flex !important;
+    justify-content: center;
+    padding: 6px 10px calc(6px + var(--mobile-bottom-offset, 0px));
+    border: 0 !important;
+    border-radius: 18px 18px 0 0 !important;
+    box-shadow: none !important;
+    background-color: var(--tui-chrome-bg, #fafafa) !important;
+  }
+  body.mobile .excalidraw .App-toolbar .ToolIcon__icon,
+  body.mobile .excalidraw .App-toolbar .dropdown-menu-button {
+    width: 48px !important;
+    height: 48px !important;
+    border-radius: 14px !important;
+    background: transparent !important;
+    color: var(--launcher-pane-text-color, var(--main-text-color)) !important;
+  }
+  body.mobile .excalidraw .App-toolbar .ToolIcon__icon svg,
+  body.mobile .excalidraw .App-toolbar .dropdown-menu-button svg { width: 23px !important; height: 23px !important; }
+  body.mobile .excalidraw .App-toolbar .ToolIcon_type_radio:checked + .ToolIcon__icon,
+  body.mobile .excalidraw .App-toolbar .ToolIcon_type_checkbox:checked + .ToolIcon__icon {
+    background: var(--tui-active-bg) !important;
+    color: var(--tui-accent) !important;
+  }
+  /* Boxicons instead of Excalidraw's own line icons, like the rest of Trilium (codepoints of the app's boxicons font:
+     bx-move, bx-pointer, bx-square (rotated for the diamond), bx-circle, bx-right-arrow-alt, bx-minus, bx-pencil, bx-text,
+     bx-image-alt, bx-eraser, bx-lock-open-alt / bx-lock-alt, bx-pen, bx-category) */
+  body.mobile .excalidraw .App-toolbar .ToolIcon__icon svg,
+  body.mobile .excalidraw .App-toolbar .dropdown-menu-button svg { display: none !important; }
+  body.mobile .excalidraw .App-toolbar .ToolIcon__icon,
+  body.mobile .excalidraw .App-toolbar .dropdown-menu-button { display: grid !important; place-items: center; }
+  body.mobile .excalidraw .App-toolbar .ToolIcon__icon::before,
+  body.mobile .excalidraw .App-toolbar .dropdown-menu-button::before {
+    font-family: boxicons !important;
+    font-size: 24px;
+    line-height: 1;
+    font-weight: normal;
+    font-style: normal;
+    speak: none;
+  }
+  body.mobile .excalidraw .App-toolbar label:has(input[data-testid="toolbar-hand"]) .ToolIcon__icon::before { content: "\eb97"; }
+  body.mobile .excalidraw .App-toolbar label:has(input[data-testid="toolbar-selection"]) .ToolIcon__icon::before { content: "\ef5e"; }
+  body.mobile .excalidraw .App-toolbar label:has(input[data-testid="toolbar-rectangle"]) .ToolIcon__icon::before { content: "\ec25"; }
+  body.mobile .excalidraw .App-toolbar label:has(input[data-testid="toolbar-diamond"]) .ToolIcon__icon::before { content: "\ec25"; transform: rotate(45deg) scale(.85); }
+  body.mobile .excalidraw .App-toolbar label:has(input[data-testid="toolbar-ellipse"]) .ToolIcon__icon::before { content: "\ea5c"; }
+  body.mobile .excalidraw .App-toolbar label:has(input[data-testid="toolbar-arrow"]) .ToolIcon__icon::before { content: "\ebe6"; }
+  body.mobile .excalidraw .App-toolbar label:has(input[data-testid="toolbar-line"]) .ToolIcon__icon::before { content: "\eb8b"; }
+  body.mobile .excalidraw .App-toolbar label:has(input[data-testid="toolbar-freedraw"]) .ToolIcon__icon::before { content: "\ebb1"; }
+  body.mobile .excalidraw .App-toolbar label:has(input[data-testid="toolbar-text"]) .ToolIcon__icon::before { content: "\ec44"; }
+  body.mobile .excalidraw .App-toolbar label:has(input[data-testid="toolbar-image"]) .ToolIcon__icon::before { content: "\eb1d"; }
+  body.mobile .excalidraw .App-toolbar label:has(input[data-testid="toolbar-eraser"]) .ToolIcon__icon::before { content: "\eac4"; }
+  body.mobile .excalidraw .App-toolbar .ToolIcon__lock .ToolIcon__icon::before { content: "\eb4c"; }
+  body.mobile .excalidraw .App-toolbar .ToolIcon__lock input:checked + .ToolIcon__icon::before { content: "\eb4a"; }
+  body.mobile .excalidraw .App-toolbar .ToolIcon__penMode .ToolIcon__icon::before { content: "\ebb0"; }
+  body.mobile .excalidraw .App-toolbar .App-toolbar__extra-tools-trigger::before { content: "\ea39"; }
+
+  /* stroke / background / width / opacity: a compact box above the tool bar, not a panel on the right */
+  body.mobile .excalidraw .Island.App-menu__left {
+    position: absolute !important;
+    left: 50% !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: 60px !important;
+    transform: translateX(-50%);
+    width: 214px;
+    max-height: calc(100% - 110px);
+    overflow-y: auto;
+    border-radius: 16px;
+    z-index: 4;
+    background-color: var(--main-background-color, #ffffff) !important;
+    backdrop-filter: none !important;
+    box-shadow: 0 8px 28px rgba(15, 25, 20, .18) !important;
+  }
+  /* shown with the "Tool options" button of the top bar (tablet_ui.js sets .tui-props-open) */
+  body.mobile:not(.tui-props-open) .excalidraw .Island.App-menu__left { display: none !important; }
+}
+
+/* note icon and title in the top bar: a plain icon like the buttons beside it, the title in the interface's type */
+body.mobile .note-split .title-row .note-icon-widget,
+body.mobile .note-split .title-row .note-icon {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+body.mobile .note-split .title-row .note-icon {
+  width: 40px !important;
+  height: 40px !important;
+  font-size: 22px !important;
+  color: var(--main-text-color) !important;
+}
+/* Trilium draws a dark disc behind the icon (::after) with the glyph in white (::before) */
+body.mobile .note-split .title-row .note-icon::after { display: none !important; }
+body.mobile .note-split .title-row .note-icon::before { color: var(--main-text-color) !important; }
+body.mobile .note-split .title-row .note-title {
+  font: 600 16px/1.3 var(--main-font-family, system-ui, sans-serif) !important;
+  color: var(--main-text-color) !important;
+}
+
+/* canvas tools in the note's top bar (added by tablet_ui.js): zoom, undo/redo, Draw/Done; only on canvas notes.
+   They are Trilium's own .icon-action buttons, like the panel and "…" buttons next to them */
+body.mobile #tui-canvas-tools { display: none; align-items: center; gap: 2px; }
+body.mobile .note-split.type-canvas #tui-canvas-tools { display: flex; }
+body.mobile #tui-canvas-tools .icon-action:disabled { opacity: .35; }
+body.mobile #tui-canvas-tools .tui-zoom {
+  border: 0;
+  background: transparent;
+  color: var(--main-text-color);
+  font: 500 14px/1 var(--main-font-family, system-ui, sans-serif);
+  min-width: 52px;
+  height: 40px;
+  font-variant-numeric: tabular-nums;
+}
+body.mobile #tui-canvas-tools .tui-sep { width: 1px; height: 22px; margin: 0 8px; background: var(--main-border-color); }
+body.mobile #tui-canvas-tools .tui-draw.on,
+body.mobile #tui-canvas-tools .tui-props.on { background: var(--tui-active-bg) !important; color: var(--tui-accent) !important; border-radius: 12px; }
+
+/* canvas notes reach the bottom edge: no reading margin under the scrolling area (58 dp) and no gesture-bar margin
+   under the note; the tool bar keeps its icons above the gesture line with its own bottom padding */
+body.mobile .note-split.type-canvas .scrolling-container { padding-bottom: 0 !important; }
+body.mobile:has(.note-split.active.type-canvas) #detail-container { padding-bottom: 0 !important; }
+
+/* drawing mode: only the canvas, when the active note is a canvas */
+body.mobile.tui-focus:has(.note-split.active.type-canvas) #mobile-bottom-bar,
+body.mobile.tui-focus:has(.note-split.active.type-canvas) #mobile-sidebar-wrapper { display: none !important; }
+body.mobile.tui-focus:has(.note-split.active.type-canvas) #detail-container { width: 100% !important; flex: 1 1 auto; }
+
+/* ------------------------------------------------------------------------------------------------------------
+   Landscape side panels: on the left Menu OR the note tree, on the right "…" OR the tool
+   options; the note area shrinks to make room. Same width on both sides.
+   ------------------------------------------------------------------------------------------------------------ */
+@media (min-width: 992px) {
+  /* the panels start under the system status bar, like the rest of the layout (Trilium's own inset variable) */
+  body.mobile { --tui-panel-width: 340px; --tui-safe-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px)); }
+
+  /* Menu's wrapper was as wide as its icon (38 dp): rail width, so its green matches the one of Notes */
+  body.mobile #launcher-pane.horizontal .global-menu,
+  body.mobile #launcher-pane.horizontal .global-menu-button { width: 70px !important; }
+
+  /* the tree: a fixed-width left panel */
+  body.mobile #mobile-rest-container > #mobile-sidebar-wrapper:not(.left-pane-hidden) {
+    flex: 0 0 var(--tui-panel-width) !important;
+    width: var(--tui-panel-width) !important;
+    max-width: var(--tui-panel-width) !important;
+  }
+
+  /* Menu: the same left panel; while it is open the tree steps aside */
+  body.mobile .tn-dropdown-portal.global-menu > .dropdown-menu.show {
+    overflow-x: hidden !important;
+    position: fixed !important;
+    inset: var(--tui-safe-top) auto 0 84px !important;
+    transform: none !important;
+    width: var(--tui-panel-width) !important;
+    max-height: none !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-inline-end: 1px solid var(--main-border-color) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: 12px !important;
+    overflow-y: auto;
+    background: var(--left-pane-background-color, var(--main-background-color)) !important;
+  }
+  body.mobile:has(.tn-dropdown-portal.global-menu > .dropdown-menu.show) #mobile-sidebar-wrapper { display: none !important; }
+  body.mobile:has(.tn-dropdown-portal.global-menu > .dropdown-menu.show) #mobile-rest-container { margin-inline-start: var(--tui-panel-width); }
+  body.mobile:has(.tn-dropdown-portal.global-menu > .dropdown-menu.show) #launcher-pane .launcher-button.bx-sitemap.on { background: transparent !important; color: inherit !important; }
+  body.mobile:has(.tn-dropdown-portal.global-menu > .dropdown-menu.show) #launcher-pane .launcher-button.bx-sitemap.on::after { color: var(--launcher-pane-text-color, currentColor) !important; font-weight: 500 !important; }
+
+  /* "…": the right panel */
+  body.mobile .tn-dropdown-portal.note-actions > .dropdown-menu.show {
+    overflow-x: hidden !important;
+    position: fixed !important;
+    inset: var(--tui-safe-top) 0 0 auto !important;
+    transform: none !important;
+    width: var(--tui-panel-width) !important;
+    max-height: none !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-inline-start: 1px solid var(--main-border-color) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: 12px !important;
+    overflow-y: auto;
+    background: var(--left-pane-background-color, var(--main-background-color)) !important;
+  }
+  body.mobile:has(.tn-dropdown-portal.note-actions > .dropdown-menu.show) #mobile-rest-container { margin-inline-end: var(--tui-panel-width); }
+
+  /* panel titles */
+  body.mobile .tn-dropdown-portal.global-menu > .dropdown-menu.show::before,
+  body.mobile .tn-dropdown-portal.note-actions > .dropdown-menu.show::before {
+    display: block;
+    padding: 6px 8px 14px;
+    font: 600 16px/1.3 var(--main-font-family, system-ui, sans-serif);
+    color: var(--main-text-color);
+  }
+  body.mobile .tn-dropdown-portal.global-menu > .dropdown-menu.show::before { content: "Menu"; }
+  body.mobile .tn-dropdown-portal.note-actions > .dropdown-menu.show::before { content: "Note"; }
+
+  /* rows like the tree: 48 dp, 15.5 px text, 22 px icons */
+  body.mobile .tn-dropdown-portal > .dropdown-menu.show .dropdown-item {
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 15.5px;
+    border-radius: 12px;
+  }
+  body.mobile .tn-dropdown-portal > .dropdown-menu.show .dropdown-item .bx,
+  body.mobile .tn-dropdown-portal > .dropdown-menu.show .tn-menu-action .bx { font-size: 22px; }
+  body.mobile .tn-dropdown-portal > .dropdown-menu.show .tn-menu-action { border-radius: 14px; min-height: 64px; font-size: 12.5px; }
+  /* the pills (backlinks, paths, attachments, attributes) had fixed columns wider than the panel: two equal ones */
+  body.mobile .tn-dropdown-portal > .dropdown-menu.show .form-list-row { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  body.mobile .tn-dropdown-portal > .dropdown-menu.show .form-list-row .form-list-col,
+  body.mobile .tn-dropdown-portal > .dropdown-menu.show .form-list-row .dropdown-item { min-width: 0; width: auto !important; }
+  /* their text fits the half width: tighter padding and gap, 14.5 px, "…" if still too long */
+  body.mobile .tn-dropdown-portal > .dropdown-menu.show .form-list-row .dropdown-item {
+    gap: 8px !important;
+    padding-inline: 10px !important;
+    font-size: 14.5px !important;
+    overflow: hidden;
+  }
+  body.mobile .tn-dropdown-portal > .dropdown-menu.show .form-list-row .dropdown-item > span:not(.bx):not(.tn-icon) {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* tool options: the same right panel (instead of "…"); Trilium look, not the grey boxes of Excalidraw */
+  body.mobile .excalidraw .Island.App-menu__left {
+    position: fixed !important;
+    inset: var(--tui-safe-top) 0 0 auto !important;
+    transform: none !important;
+    width: var(--tui-panel-width) !important;
+    max-height: none !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-inline-start: 1px solid var(--main-border-color) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: 18px 16px !important;
+    overflow-y: auto;
+    z-index: 30;
+    background: var(--left-pane-background-color, var(--main-background-color)) !important;
+  }
+  body.mobile.tui-props-open:has(.note-split.active .excalidraw .Island.App-menu__left) #mobile-rest-container { margin-inline-end: var(--tui-panel-width); }
+  body.mobile:has(.tn-dropdown-portal.note-actions > .dropdown-menu.show) .excalidraw .Island.App-menu__left { display: none !important; }
+  body.mobile .excalidraw .Island.App-menu__left::before {
+    content: "Tool options";
+    display: block;
+    padding: 0 0 14px;
+    font: 600 16px/1.3 var(--main-font-family, system-ui, sans-serif);
+    color: var(--main-text-color);
+  }
+}
+
+/* tool options look (both orientations): no grey boxes or uppercase captions, Trilium-sized controls, green choice */
+@media (min-width: 700px) {
+  body.mobile .excalidraw .Island.App-menu__left .panelColumn { display: grid; gap: 20px; }
+  body.mobile .excalidraw .Island.App-menu__left .panelColumn > *,
+  body.mobile .excalidraw .Island.App-menu__left fieldset {
+    background: transparent !important;
+    border: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+  }
+  body.mobile .excalidraw .Island.App-menu__left h3,
+  body.mobile .excalidraw .Island.App-menu__left legend,
+  body.mobile .excalidraw .Island.App-menu__left .control-label {
+    font: 600 13px/1.3 var(--main-font-family, system-ui, sans-serif) !important;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+    color: var(--muted-text-color, #6b7470) !important;
+    margin: 0 0 8px !important;
+  }
+  body.mobile .excalidraw .Island.App-menu__left .buttonList { display: flex; flex-wrap: wrap; gap: 8px; }
+  body.mobile .excalidraw .Island.App-menu__left .buttonList label,
+  body.mobile .excalidraw .Island.App-menu__left .buttonList button {
+    width: 48px !important;
+    height: 44px !important;
+    border-radius: 12px !important;
+    background: var(--accented-background-color, rgba(0, 0, 0, .05)) !important;
+    border: 0 !important;
+    color: var(--main-text-color) !important;
+    display: grid !important;
+    place-items: center;
+  }
+  body.mobile .excalidraw .Island.App-menu__left .buttonList label.active,
+  body.mobile .excalidraw .Island.App-menu__left .buttonList button.active {
+    background: var(--tui-active-bg) !important;
+    color: var(--tui-accent) !important;
+    box-shadow: inset 0 0 0 2px var(--tui-accent) !important;
+  }
+  body.mobile .excalidraw .Island.App-menu__left .buttonList svg { width: 22px !important; height: 22px !important; }
+  body.mobile .excalidraw .Island.App-menu__left .color-picker__top-picks { gap: 8px; }
+  body.mobile .excalidraw .Island.App-menu__left .color-picker__button {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 50% !important;
+  }
+  body.mobile .excalidraw .Island.App-menu__left .color-picker__button.active .color-picker__button-outline {
+    border-radius: 50% !important;
+    box-shadow: 0 0 0 2px var(--main-background-color), 0 0 0 4px var(--tui-accent) !important;
+  }
+  body.mobile .excalidraw .Island.App-menu__left input[type=range] { accent-color: var(--tui-accent); width: 100%; }
+}
+
+/* the bottom tool bar centres on the space that stays free when the right panel (tool options or "…") is open, so
+   opening or closing that panel does not move it */
+@media (min-width: 992px) {
+  body.mobile .excalidraw .App-menu_top .shapes-section { left: max(50%, calc(var(--tui-tb-half, 0px) + 8px)) !important; }
+  /* the right panel takes its width from the drawing area: the bar keeps its centre on screen, moving left only as
+     far as needed to stay clear of the panel (without the pen and padlock toggles it is narrower) */
+  body.mobile:has(.tn-dropdown-portal.note-actions > .dropdown-menu.show) .excalidraw .App-menu_top .shapes-section,
+  body.mobile.tui-props-open:has(.note-split.active .excalidraw .Island.App-menu__left) .excalidraw .App-menu_top .shapes-section {
+    left: max(calc(var(--tui-tb-half, 0px) + 8px), min(calc(50% + var(--tui-panel-width) / 2), calc(100% - var(--tui-tb-half, 0px) - 8px))) !important;
+  }
+  /* with a left panel open (tree, Menu, New) the bar may move right, but never under that panel (tablet_ui.js sets
+     --tui-tb-half, half the bar's width) */
+}
+
+/* ------------------------------------------------------------------------------------------------------------
+   Text notes: the formatting bar like the canvas tool bar: compact, centred, docked to the bottom edge, coloured like
+   the rail, Boxicons instead of the editor's own icons (codepoints of the app's boxicons font)
+   ------------------------------------------------------------------------------------------------------------ */
+@media (min-width: 700px) {
+  body.mobile .classic-toolbar-island {
+    left: 50% !important;
+    right: auto !important;
+    bottom: 0 !important;
+    width: max-content !important;
+    max-width: calc(100% - 24px) !important;
+    transform: translateX(-50%) !important;
+    border: 0 !important;
+    border-radius: 18px 18px 0 0 !important;
+    box-shadow: none !important;
+    background: var(--tui-chrome-bg, #fafafa) !important;
+    padding: 6px 10px calc(6px + var(--mobile-bottom-offset, 0px)) !important;
+  }
+  body.mobile .classic-toolbar-island .classic-toolbar-widget,
+  body.mobile .classic-toolbar-island .ck-toolbar {
+    position: relative !important;
+    inset: auto !important;
+    width: auto !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+  body.mobile .classic-toolbar-island .ck-toolbar__items { gap: 2px; flex-wrap: nowrap; }
+  body.mobile .classic-toolbar-island .ck-button {
+    min-width: 46px !important;
+    min-height: 46px !important;
+    border-radius: 14px !important;
+    color: var(--launcher-pane-text-color, var(--main-text-color)) !important;
+    background: transparent !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+  body.mobile .classic-toolbar-island .ck-button.ck-on { background: var(--tui-active-bg) !important; color: var(--tui-accent) !important; }
+  body.mobile .classic-toolbar-island .ck-button.ck-disabled { opacity: .35; }
+  body.mobile .classic-toolbar-island .ck-toolbar__separator { height: 24px !important; margin: 0 6px !important; background: var(--main-border-color) !important; }
+
+  /* the editor's icons give way to Boxicons; the small dropdown arrows stay */
+  body.mobile .classic-toolbar-island .ck-button[data-cke-tooltip-text] svg.ck-icon:not(.ck-dropdown__arrow) { display: none !important; }
+  /* Trilium uses each button's ::before as the grey hover background (an absolute box behind the button): on a
+     touch screen there is no hover, so the ::before becomes the icon */
+  body.mobile .classic-toolbar-island .ck-button[data-cke-tooltip-text]::before {
+    font-family: boxicons !important;
+    font-size: 23px !important;
+    line-height: 1 !important;
+    font-weight: normal;
+    font-style: normal;
+    position: static !important;
+    inset: auto !important;
+    width: auto !important;
+    height: auto !important;
+    background: none !important;
+    border-radius: 0 !important;
+    opacity: 1 !important;
+    z-index: auto !important;
+    transform: none !important;
+    color: inherit !important;
+  }
+  body.mobile .classic-toolbar-island .ck-button[data-cke-tooltip-text^="Undo"]::before { content: "\ec59" !important; }
+  body.mobile .classic-toolbar-island .ck-button[data-cke-tooltip-text^="Redo"]::before { content: "\ebd8" !important; }
+  body.mobile .classic-toolbar-island .ck-button[data-cke-tooltip-text^="List"]::before { content: "\eb44" !important; }
+  body.mobile .classic-toolbar-island .ck-button[data-cke-tooltip-text^="Block type"]::before { content: "\eb07" !important; }
+  body.mobile .classic-toolbar-island .ck-button[data-cke-tooltip-text^="Insert"]::before { content: "\ebc0" !important; }
+  body.mobile .classic-toolbar-island .ck-button[data-cke-tooltip-text^="Text formatting"]::before { content: "\eae3" !important; }
+  body.mobile .classic-toolbar-island .ck-button[data-cke-tooltip-text^="Link"]::before { content: "\eb3c" !important; }
+  body.mobile .classic-toolbar-island .ck-button[data-cke-tooltip-text^="Attach file"]::before { content: "\ebaa" !important; }
+  body.mobile .classic-toolbar-island .ck-button[data-cke-tooltip-text^="Decrease indent"]::before { content: "\eb36" !important; }
+  body.mobile .classic-toolbar-island .ck-button[data-cke-tooltip-text^="Increase indent"]::before { content: "\ebe9" !important; }
+  body.mobile .classic-toolbar-island .ck-button[data-cke-tooltip-text^="Move up"]::before { content: "\ec5e" !important; }
+  body.mobile .classic-toolbar-island .ck-button[data-cke-tooltip-text^="Move down"]::before { content: "\eab8" !important; }
+  /* a button without a mapped icon keeps the editor's */
+  body.mobile .classic-toolbar-island .ck-button[data-cke-tooltip-text]:not([data-cke-tooltip-text^="Undo"]):not([data-cke-tooltip-text^="Redo"]):not([data-cke-tooltip-text^="List"]):not([data-cke-tooltip-text^="Block type"]):not([data-cke-tooltip-text^="Insert"]):not([data-cke-tooltip-text^="Text formatting"]):not([data-cke-tooltip-text^="Link"]):not([data-cke-tooltip-text^="Attach file"]):not([data-cke-tooltip-text^="Decrease indent"]):not([data-cke-tooltip-text^="Increase indent"]):not([data-cke-tooltip-text^="Move up"]):not([data-cke-tooltip-text^="Move down"]) svg.ck-icon { display: inline-block !important; }
+}
+/* landscape with the rail: centred on the screen, as the canvas bar */
+@media (min-width: 992px) {
+  body.mobile:not(.tui-focus) .classic-toolbar-island { left: calc(50% - 42px) !important; }
+}
+
+/* ------------------------------------------------------------------------------------------------------------
+   Collections: one top bar. The collection's own bar (view type, settings, calendar navigation) moves into the
+   note's title row, between the title and the buttons on the right. tablet_ui.js sizes the title to its text and
+   sets .tui-coll-merged on the note pane only when the controls fit (otherwise the two rows stay); it marks the bar
+   (.tui-coll-bar) and the positioned containers between it and the note pane (.tui-coll-static), which lose their
+   positioning so that the bar is placed against the note pane and does not scroll away.
+   ------------------------------------------------------------------------------------------------------------ */
+@media (min-width: 700px) {
+  body.mobile .note-split.tui-coll-merged .tui-coll-static { position: static !important; }
+  /* the title field shrinks to its text; its container keeps the row's width, so the buttons stay on the right */
+  body.mobile .note-split.tui-coll-merged > .title-row .note-title-widget input.note-title {
+    width: var(--tui-title-w, 30%) !important;
+    max-width: var(--tui-title-w, 30%) !important;
+  }
+  body.mobile .note-split.tui-coll-merged .collection-properties.tui-coll-bar {
+    position: absolute !important;
+    top: 0;
+    left: var(--tui-coll-left, 40%);
+    right: var(--tui-coll-right, 96px);
+    width: auto !important;
+    height: var(--tui-coll-h, 50px);
+    margin: 0 !important;
+    padding: 0 4px !important;
+    border: 0 !important;
+    align-items: center !important;
+    z-index: 3;
+  }
+  body.mobile .note-split.tui-coll-merged .collection-properties.tui-coll-bar > * {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    align-items: center;
+  }
+  /* the view type and settings keep their size; the calendar navigation takes the rest and centres in it */
+  body.mobile .note-split.tui-coll-merged .collection-properties.tui-coll-bar > .left-container { flex: 0 0 auto !important; }
+  body.mobile .note-split.tui-coll-merged .collection-properties.tui-coll-bar > .center-container { flex: 1 1 auto !important; min-width: 0 !important; }
+  /* compact: the view-type button keeps its icon and chevron (a background image), not its label */
+  body.mobile .note-split.tui-coll-compact .collection-properties.tui-coll-bar .left-container .dropdown-toggle { font-size: 0 !important; }
+  body.mobile .note-split.tui-coll-compact .collection-properties.tui-coll-bar .left-container .dropdown-toggle > .tn-icon { font-size: 18px !important; }
+}
+
+/* ------------------------------------------------------------------------------------------------------------
+   Canvas tool options: the stroke width slider of tablet_ui.js replaces Excalidraw's three buttons
+   ------------------------------------------------------------------------------------------------------------ */
+@media (min-width: 700px) {
+  body.mobile .excalidraw .Island.App-menu__left fieldset:has(> .tui-stroke-range) .buttonList { display: none !important; }
+  body.mobile .excalidraw .Island.App-menu__left .tui-stroke-range { display: flex; align-items: center; gap: 12px; }
+  body.mobile .excalidraw .Island.App-menu__left .tui-stroke-range input { flex: 1; min-width: 0; accent-color: var(--tui-accent); }
+  body.mobile .excalidraw .Island.App-menu__left .tui-stroke-range output {
+    min-width: 2.5em;
+    text-align: right;
+    font: 500 13px/1 var(--main-font-family, system-ui, sans-serif);
+    font-variant-numeric: tabular-nums;
+    color: var(--main-text-color);
+  }
+}
+
+/* ------------------------------------------------------------------------------------------------------------
+   Note tree (mobile navigator): the card at the top is the note whose children are listed, often the parent of the
+   open note; its "This note" caption read as the open note, so it goes and the card stays as the folder's header.
+   Tool options: Opacity as a row like the stroke width slider (Excalidraw placed its value for its own layout).
+   ------------------------------------------------------------------------------------------------------------ */
+@media (min-width: 700px) {
+  body.mobile .mobile-note-navigator .mobile-navigator-children-label:has(+ .mobile-navigator-current-tile) { display: none !important; }
+  /* the card becomes the header of the folder being browsed: its icon, title, "+" and "…", no preview of its content
+     and no card; a tap on it still opens that note */
+  body.mobile .mobile-note-navigator .mobile-navigator-current-preview { display: none !important; }
+  body.mobile .mobile-note-navigator .mobile-navigator-current-tile {
+    margin-top: 6px !important;
+    padding: 6px 4px 6px 12px !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    border-radius: 12px;
+  }
+  body.mobile .mobile-note-navigator .mobile-navigator-current-tile:active { background: var(--hover-item-background-color, rgba(0, 0, 0, .06)) !important; }
+  body.mobile .mobile-note-navigator .mobile-navigator-current-header { gap: 10px; }
+  body.mobile .mobile-note-navigator .mobile-navigator-current-icon { font-size: 22px !important; }
+  body.mobile .mobile-note-navigator .mobile-navigator-current-title { font: 600 17px/1.3 var(--main-font-family, system-ui, sans-serif) !important; }
+
+  body.mobile .excalidraw .Island.App-menu__left .range-wrapper { display: flex !important; align-items: center; gap: 12px; height: auto !important; }
+  body.mobile .excalidraw .Island.App-menu__left .range-wrapper .range-input {
+    flex: 1;
+    min-width: 0;
+    -webkit-appearance: auto !important;
+    appearance: auto !important;
+    background: transparent !important;
+    height: auto !important;
+    accent-color: var(--tui-accent);
+  }
+  body.mobile .excalidraw .Island.App-menu__left .range-wrapper .value-bubble {
+    position: static !important;
+    order: 2;
+    transform: none !important;
+    min-width: 2.5em;
+    padding: 0 !important;
+    background: none !important;
+    text-align: right;
+    font: 500 13px/1 var(--main-font-family, system-ui, sans-serif);
+    font-variant-numeric: tabular-nums;
+    color: var(--main-text-color);
+  }
+  body.mobile .excalidraw .Island.App-menu__left .range-wrapper .zero-label { display: none !important; }
+  /* Excalidraw kept room under the slider for its own value labels: the same spacing as the other groups */
+  body.mobile .excalidraw .Island.App-menu__left .range-wrapper { padding: 0 !important; margin: 8px 0 0 !important; min-height: 0 !important; }
+  body.mobile .excalidraw .Island.App-menu__left label.control-label:has(.range-wrapper) { margin: 0 !important; }
+}
+
+/* ------------------------------------------------------------------------------------------------------------
+   "New": the note types (tablet_ui.js), styled like the Menu panel. Landscape: the left panel, in place of the tree
+   or Menu; portrait: over the note, above the bottom bar.
+   ------------------------------------------------------------------------------------------------------------ */
+@media (min-width: 700px) {
+  body.mobile #tui-new-panel {
+    position: fixed;
+    z-index: 1040;
+    inset: var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) auto var(--tui-new-bottom, 0px) 0;
+    width: var(--tui-panel-width, 340px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    background: var(--left-pane-background-color, var(--main-background-color));
+    border-inline-end: 1px solid var(--main-border-color);
+    box-shadow: 0 8px 28px rgba(15, 25, 20, .18);
+  }
+  body.mobile #tui-new-panel[hidden] { display: none !important; }
+  body.mobile #tui-new-panel .tui-new-title { padding: 6px 8px 14px; font: 600 16px/1.3 var(--main-font-family, system-ui, sans-serif); color: var(--main-text-color); }
+  body.mobile #tui-new-panel .tui-new-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 48px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--menu-text-color, var(--main-text-color));
+    font: 400 15.5px/1.3 var(--main-font-family, system-ui, sans-serif);
+    text-align: start;
+  }
+  body.mobile #tui-new-panel .tui-new-item .bx { font-size: 22px; width: 24px; text-align: center; }
+  body.mobile #tui-new-panel .tui-new-item:hover,
+  body.mobile #tui-new-panel .tui-new-item:active { background: var(--hover-item-background-color, rgba(0, 0, 0, .06)); }
+}
+@media (min-width: 992px) {
+  body.mobile #tui-new-panel { left: 84px; box-shadow: none; }
+  body.mobile.tui-new-open #mobile-sidebar-wrapper { display: none !important; }
+  body.mobile.tui-new-open #mobile-rest-container { margin-inline-start: var(--tui-panel-width); }
+  body.mobile.tui-new-open #launcher-pane .launcher-button.bx-sitemap.on { background: transparent !important; color: inherit !important; }
+  body.mobile.tui-new-open #launcher-pane .launcher-button.bx-sitemap.on::after { color: var(--launcher-pane-text-color, currentColor) !important; font-weight: 500 !important; }
+  /* New, while its panel is open: the same green as Notes and Menu */
+  body.mobile #launcher-pane .launcher-button.bx-file-blank.on,
+  body.mobile #launcher-pane .launcher-button.bx-file-blank.on:focus { background: var(--tui-active-bg) !important; color: var(--tui-accent); }
+  body.mobile #launcher-pane .launcher-button.bx-file-blank.on::after { color: var(--tui-accent); font-weight: 600; }
+}
+
+/* ------------------------------------------------------------------------------------------------------------
+   Next to the tree, the note column kept its Bootstrap column width and ran past the right edge of the screen
+  : it takes exactly the room that is left. New empty text notes: no "Switch from text to" bar
+  .
+   ------------------------------------------------------------------------------------------------------------ */
+@media (min-width: 992px) {
+  body.mobile #mobile-rest-container > :not(#mobile-sidebar-wrapper) {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    width: auto !important;
+    max-width: none !important;
+  }
+}
+@media (min-width: 700px) {
+  body.mobile .note-split .note-type-switcher { display: none !important; }
+}
+
+/* ------------------------------------------------------------------------------------------------------------
+   Note tree: the folder being browsed moves into the tree's top bar, after "‹". The bar reads "‹  13 - Friday  +  …": "‹" goes up a level (its parent's name goes),
+   a tap on the name opens that note, "+" adds a child, "…" its menu. The list scrolls under a fixed bar.
+   ------------------------------------------------------------------------------------------------------------ */
+@media (min-width: 700px) {
+  body.mobile .mobile-note-navigator { position: relative !important; }
+  /* its fade mask at the top would hide the header lifted out of it */
+  body.mobile .mobile-note-navigator .mobile-navigator-scroll { position: static !important; -webkit-mask-image: none !important; mask-image: none !important; }
+  body.mobile .mobile-note-navigator .mobile-navigator-toolbar-title { display: none !important; }
+  body.mobile .mobile-note-navigator .mobile-navigator-back { padding: 6px 8px !important; }
+  /* the open note's row: marked like the other active items (green), not only by a thin bar */
+  body.mobile .mobile-note-navigator .mobile-navigator-row.is-active {
+    background: var(--tui-active-bg) !important;
+    color: var(--tui-accent) !important;
+    font-weight: 600;
+    box-shadow: inset 3px 0 0 var(--tui-accent) !important;
+    border-left-color: var(--tui-accent) !important;
+  }
+  body.mobile .mobile-note-navigator .mobile-navigator-row.is-active .tn-icon { color: var(--tui-accent) !important; }
+  /* one background for the whole panel: the bar was white over the grey list */
+  body.mobile .mobile-note-navigator .mobile-navigator-toolbar { background: transparent !important; }
+  body.mobile .mobile-note-navigator .mobile-navigator-current-tile {
+    position: absolute !important;
+    top: 4px;
+    left: 46px;
+    right: 6px;
+    height: 40px;
+    margin: 0 !important;
+    padding: 0 0 0 4px !important;
+    z-index: 2;
+  }
+  /* the root level has no bar ("‹" has nowhere to go): there the header stays above the list, in the flow */
+  body.mobile .mobile-note-navigator:not(:has(.mobile-navigator-back)) .mobile-navigator-current-tile { position: static !important; margin: 6px 6px 0 8px !important; }
+}
+
+/* ------------------------------------------------------------------------------------------------------------
+   "Search": the quick search in the left panel (tablet_ui.js sets .tui-search-open); Search green, not Notes, and the
+   results no wider than the panel
+   ------------------------------------------------------------------------------------------------------------ */
+@media (min-width: 992px) {
+  body.mobile.tui-search-open #launcher-pane .launcher-button.bx-search,
+  body.mobile.tui-search-open #launcher-pane .launcher-button.bx-search:focus { background: var(--tui-active-bg) !important; color: var(--tui-accent); }
+  body.mobile.tui-search-open #launcher-pane .launcher-button.bx-search::after { color: var(--tui-accent); font-weight: 600; }
+  body.mobile.tui-search-open #launcher-pane .launcher-button.bx-sitemap.on { background: transparent !important; color: inherit !important; }
+  body.mobile.tui-search-open #launcher-pane .launcher-button.bx-sitemap.on::after { color: var(--launcher-pane-text-color, currentColor) !important; font-weight: 500 !important; }
+  body.mobile .quick-search-menu { width: calc(var(--tui-panel-width, 340px) - 16px) !important; min-width: 0 !important; max-width: calc(var(--tui-panel-width, 340px) - 16px) !important; }
+}
+
+/* ------------------------------------------------------------------------------------------------------------
+   Menu and "…" panels: the tiles with the icon above the text (Search notes, Recent changes, Deleted notes; New split,
+   Note map, Find, Child note) become rows like the other items, icon then text
+   ------------------------------------------------------------------------------------------------------------ */
+@media (min-width: 992px) {
+  body.mobile .tn-dropdown-portal > .dropdown-menu.show .tn-menu-actions { display: grid !important; grid-template-columns: 1fr !important; grid-auto-flow: row !important; gap: 2px !important; }
+  body.mobile .tn-dropdown-portal > .dropdown-menu.show .tn-menu-action {
+    flex-direction: row !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    gap: 12px !important;
+    min-height: 48px !important;
+    padding: 0 12px !important;
+    border-radius: 12px !important;
+    text-align: start !important;
+  }
+  body.mobile .tn-dropdown-portal > .dropdown-menu.show .tn-menu-action .tn-menu-action-title { font-size: 15.5px !important; white-space: nowrap; }
+  body.mobile .tn-dropdown-portal > .dropdown-menu.show .tn-menu-action .tn-menu-action-icon,
+  body.mobile .tn-dropdown-portal > .dropdown-menu.show .tn-menu-action .tn-menu-action-icon .bx { font-size: 22px !important; }
+}
+
+/* ------------------------------------------------------------------------------------------------------------
+   One colour for the top bar, the rail and the tool bars (tablet_ui.js sets --tui-chrome-bg from the rail's colour)
+   ------------------------------------------------------------------------------------------------------------ */
+@media (min-width: 700px) {
+  body.mobile .note-split .title-row { background: var(--tui-chrome-bg, #fafafa) !important; }
+}
+
+/* ------------------------------------------------------------------------------------------------------------
+   Bookmarks (a dropdown launcher in the rail): the same docked left panel as Menu, with a title and, when there are
+   no bookmarks yet, where to add one
+   ------------------------------------------------------------------------------------------------------------ */
+@media (min-width: 992px) {
+  body.mobile .tn-dropdown-portal.right-dropdown-widget > .dropdown-menu.show {
+    position: fixed !important;
+    inset: var(--tui-safe-top, 0px) auto 0 84px !important;
+    transform: none !important;
+    width: var(--tui-panel-width) !important;
+    max-height: none !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-inline-end: 1px solid var(--main-border-color) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: 12px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    background: var(--left-pane-background-color, var(--main-background-color)) !important;
+  }
+  body.mobile .tn-dropdown-portal.right-dropdown-widget > .dropdown-menu.show::before {
+    content: "Bookmarks";
+    display: block;
+    padding: 6px 8px 14px;
+    font: 600 16px/1.3 var(--main-font-family, system-ui, sans-serif);
+    color: var(--main-text-color);
+  }
+  body.mobile .tn-dropdown-portal.right-dropdown-widget > .dropdown-menu.show > .tn-menu-scroll:not(:has(.dropdown-item))::before {
+    content: "No bookmarks yet. To add a note: \2026  \203A  Note settings \203A  Bookmark.";
+    display: block;
+    padding: 4px 8px;
+    font: 400 14.5px/1.5 var(--main-font-family, system-ui, sans-serif);
+    color: var(--muted-text-color, #6b7470);
+  }
+  body.mobile:has(.tn-dropdown-portal.right-dropdown-widget > .dropdown-menu.show) #mobile-sidebar-wrapper { display: none !important; }
+  body.mobile:has(.tn-dropdown-portal.right-dropdown-widget > .dropdown-menu.show) #mobile-rest-container { margin-inline-start: var(--tui-panel-width); }
+  body.mobile:has(.tn-dropdown-portal.right-dropdown-widget > .dropdown-menu.show) #launcher-pane .launcher-button.bx-sitemap.on { background: transparent !important; color: inherit !important; }
+  body.mobile:has(.tn-dropdown-portal.right-dropdown-widget > .dropdown-menu.show) #launcher-pane .launcher-button.bx-sitemap.on::after { color: var(--launcher-pane-text-color, currentColor) !important; font-weight: 500 !important; }
+  /* Bookmarks, while its panel is open: green like the others */
+  body.mobile #launcher-pane .right-dropdown-widget .launcher-button[aria-expanded="true"],
+  body.mobile #launcher-pane .right-dropdown-widget .launcher-button[aria-expanded="true"]:focus { background: var(--tui-active-bg) !important; color: var(--tui-accent); }
+  body.mobile #launcher-pane .right-dropdown-widget .launcher-button[aria-expanded="true"]::after { color: var(--tui-accent); font-weight: 600; }
+}
+
+/* ------------------------------------------------------------------------------------------------------------
+   My colours (tablet_ui.js): a row under Excalidraw's Stroke and Background colours, swatches like Excalidraw's,
+   "+" to add, the pencil to remove (each swatch then shows a cross)
+   ------------------------------------------------------------------------------------------------------------ */
+@media (min-width: 700px) {
+  body.mobile .excalidraw .Island.App-menu__left .tui-palette { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+  body.mobile .excalidraw .Island.App-menu__left .tui-palette button {
+    position: relative;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: transparent;
+    color: var(--main-text-color);
+    font-size: 18px;
+  }
+  body.mobile .excalidraw .Island.App-menu__left .tui-palette .tui-swatch { background: var(--tui-swatch); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .15); }
+  body.mobile .excalidraw .Island.App-menu__left .tui-palette .tui-swatch.active { box-shadow: 0 0 0 2px var(--main-background-color), 0 0 0 4px var(--tui-accent); }
+  body.mobile .excalidraw .Island.App-menu__left .tui-palette .tui-swatch-add { box-shadow: inset 0 0 0 1.5px var(--muted-text-color, #6b7470); }
+  body.mobile .excalidraw .Island.App-menu__left .tui-palette .tui-swatch-edit { background: var(--accented-background-color, rgba(0, 0, 0, .05)); }
+  body.mobile .excalidraw .Island.App-menu__left .tui-palette.editing .tui-swatch-edit { background: var(--tui-active-bg); color: var(--tui-accent); }
+  body.mobile .excalidraw .Island.App-menu__left .tui-palette.editing .tui-swatch::after {
+    content: "\00d7";
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    background: var(--main-text-color);
+    color: var(--main-background-color);
+    font: 700 13px/17px system-ui, sans-serif;
+    text-align: center;
+  }
+}
+
+/* ------------------------------------------------------------------------------------------------------------
+   Rail: no hover highlight. On a touch screen the hover stays on the last button touched, so Search, then New,
+   stayed grey after another panel opened. The grey is theme-next's
+   "#launcher-pane .launcher-button:hover { background: … !important }" (shell.css), hence the specific selectors;
+   the green states (open panels, Search while the search shows) and the pressed state are left out.
+   ------------------------------------------------------------------------------------------------------------ */
+body.mobile:not(.tui-search-open) #launcher-pane :is(.launcher-button, .global-menu-button, .icon-action):hover:not(:active):not(.on):not([aria-expanded="true"]),
+body.mobile.tui-search-open #launcher-pane :is(.launcher-button, .global-menu-button, .icon-action):not(.bx-search):hover:not(:active):not(.on):not([aria-expanded="true"]) {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+body.mobile #launcher-pane :is(.launcher-button, .global-menu-button, .global-menu button):focus-visible { outline: none !important; }
+/* the same for the buttons of the note's top bar (the tool options icon stayed grey): the theme's
+   ":root .icon-action:hover" stays on the last button touched; the green states (.on) and the pressed state stay */
+body.mobile #root-widget .note-split .title-row :is(.icon-action, button):hover:not(:active):not(.on):not([aria-expanded="true"]):not(.show) {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Excalidraw's own colours: hidden once removed; while removing they show the same cross as the user's colours */
+@media (min-width: 700px) {
+  body.mobile .excalidraw .Island.App-menu__left .color-picker__button[data-tui-hidden] { display: none !important; }
+  body.mobile .excalidraw .Island.App-menu__left [data-tui-editing] .color-picker__top-picks .color-picker__button { position: relative; overflow: visible; }
+  body.mobile .excalidraw .Island.App-menu__left [data-tui-editing] .color-picker__top-picks .color-picker__button::after {
+    content: "\00d7";
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    background: var(--main-text-color);
+    color: var(--main-background-color);
+    font: 700 13px/17px system-ui, sans-serif;
+    text-align: center;
+    z-index: 2;
+  }
+  body.mobile .excalidraw .Island.App-menu__left .tui-palette .tui-swatch-reset { background: var(--accented-background-color, rgba(0, 0, 0, .05)); }
+}
+
+/* the pen-mode and padlock toggles moved to the top bar (tablet_ui.js), so the tool bar holds tools only */
+@media (min-width: 700px) {
+  body.mobile .excalidraw .App-toolbar .ToolIcon__penMode,
+  body.mobile .excalidraw .App-toolbar .ToolIcon__lock,
+  body.mobile .excalidraw .App-toolbar .ToolIcon__lock + .App-toolbar__divider { display: none !important; }
+  body.mobile #tui-canvas-tools .tui-penmode.on,
+  body.mobile #tui-canvas-tools .tui-lock.on { background: var(--tui-active-bg) !important; color: var(--tui-accent) !important; border-radius: 12px; }
+}
