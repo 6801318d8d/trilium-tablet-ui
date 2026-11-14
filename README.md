@@ -32,25 +32,29 @@ or more, so phones and the desktop layout are unchanged.
 - **Text notes:** a reading column of about 720 dp, a compact formatting toolbar docked to the bottom edge and, in
   landscape, the outline of the headings in the free space on the right (from three headings).
 - **Canvas notes (Excalidraw):**
-  - zoom (one button with the level: zoom in, zoom out, fit to drawing, 100%), undo/redo, pen mode, the "keep the tool
-    active" padlock, tool options and full-screen drawing sit in the note's top bar; the tool bar is compact, centred
-    and docked to the bottom edge;
-  - rectangle, diamond and ellipse share one **Shapes** button: a tap picks the last shape used, a second tap shows
-    the three; Excalidraw's "More tools" menu (frame, web embed, laser pointer, Mermaid) opens above the tool bar;
-  - the padlock is on in every canvas, so the tool stays active after a shape or a frame (open it by hand to go back
-    to the pointer after each shape);
+  - zoom (one button with the level: zoom in, zoom out, fit to drawing, 100%), undo/redo, tool options and full-screen
+    drawing sit in the note's top bar; the tool bar is compact, centred and docked to the bottom edge;
+  - rectangle, diamond and ellipse share one **Shapes** button, arrow and line one **Lines** button: a tap picks the
+    last tool used in the group, a second tap shows the group; Excalidraw's "More tools" menu (frame, web embed, laser
+    pointer, Mermaid) opens above the tool bar;
+  - a drawing tool stays active after a shape or a frame (Excalidraw's padlock is always on, so its button is gone);
+    pen mode is a switch at the top of the tool options (it turns on by itself at the first pen stroke);
   - tool options open in the right panel with a button; tapping a tool only changes the tool;
   - stroke width is a continuous slider; Stroke and Background get a row of your own colours (add, apply, remove,
     and Excalidraw's five can be removed too);
-  - with the pencil, a row of colours above the tool bar changes the colour with one tap, without opening the tool
-    options;
+  - with a drawing tool (pencil, shapes, lines, text), a row above the tool bar sets the colour and, except for text,
+    the thickness (thin, medium, thick) with one tap, without opening the tool options;
+  - the eraser deletes strokes as soon as it touches them (Excalidraw greys them out until the pen lifts);
   - a "Pen pressure" slider stretches the pen's pressure, so light and firm strokes differ more;
   - in pen mode one finger moves the sheet; the drawing stays in place when a side panel opens;
   - images in canvases load in the Android app too (its requests repeat the image's `Content-Type` header, and the
     data URL built from it did not decode).
 - **Touch details:** a long press on an icon button shows its name (hover tooltips never appear on a touch screen);
-  the note panel button has an info icon; no grey "hover" left on the last button touched; pen taps that the WebView
-  ends without a click are completed.
+  the note panel button has an info icon; a top-bar button works at the first tap also while a side panel is open
+  (the panel closing used to move the buttons under the finger); the docked dialogs open without the backdrop's
+  flash; no grey "hover" left on the last button touched; pen taps that the WebView ends without a click are completed.
+- **Light on the page:** nothing is measured or rewritten while a pen or finger is down on a drawing, and attributes
+  are written only when their value changes.
 
 ## Install
 

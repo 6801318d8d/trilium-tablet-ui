@@ -24,8 +24,12 @@
      slider that stretches the pen's pressure.
    - A long press on an icon button shows its name (hover tooltips never show on a touch screen); that press does not
      press the button.
-   - Canvas: one zoom button with a menu (zoom in, zoom out, fit to drawing, 100%); the pen's side button erases while
-     it is held; the padlock (keep the tool active) stays on in every note, after any reset, unless opened by hand there.
+   - Canvas: one zoom button with a menu (zoom in, zoom out, fit to drawing, 100%); rectangle, diamond and ellipse
+     share a "Shapes" button, arrow and line a "Lines" button; a drawing tool stays active after drawing (Excalidraw's
+     padlock, always on: its button is hidden); pen mode is a switch in the tool options; a row of colours and three
+     thicknesses above the tool bar while a drawing tool is active; the eraser deletes strokes as soon as it
+     touches them. A pen side button that reaches the page as
+     button 2 erases while held (on the tablet this was made on, the pen's button never reaches the page).
    - Canvas images load in the Android app too (its fetch repeats the Content-Type header, see below).
    - "Note panel" (outline, attributes, connections): an info icon, and in landscape a docked right panel, like "…".
    - "New": an optional title; without one the note is named after its type and the time.
@@ -180,6 +184,11 @@ if (typeof module !== 'undefined') module.exports = [];
         if (t && !t.disabled) t.click();
         setTimeout(syncTools, 60);
     });
+    // writes only when the value changes: the same value written again still counts as a DOM change, which the
+    // WebView then processes (every 250 ms, also while drawing)
+    const setAttr = (el, name, value) => { if (el.getAttribute(name) !== value) el.setAttribute(name, value); };
+    const setDisabled = (el, value) => { if (el.disabled !== value) el.disabled = value; };
+    const setStyleVar = (el, name, value) => { if (el.style.getPropertyValue(name) !== value) el.style.setProperty(name, value); };
     // mirror Excalidraw's state: zoom value, undo/redo available
     const syncTools = () => {
         const reset = exq('.reset-zoom-button');
@@ -187,25 +196,26 @@ if (typeof module !== 'undefined') module.exports = [];
         if (reset && label.textContent !== reset.textContent.trim()) label.textContent = reset.textContent.trim() || '100%';
         for (const act of ['undo', 'redo']) {
             const src = exq(target[act]);
-            tools.querySelector(`[data-act="${act}"]`).disabled = !src || src.disabled;
+            setDisabled(tools.querySelector(`[data-act="${act}"]`), !src || src.disabled);
         }
         const appNow = q('.note-split.active .excalidraw')?.__tuiApp;
         const pen = tools.querySelector('[data-act="penmode"]'), lock = tools.querySelector('[data-act="lock"]');
         const penOn = !!(appNow && appNow.state.penMode), lockOn = !!(appNow && appNow.state.activeTool && appNow.state.activeTool.locked);
-        pen.disabled = lock.disabled = !appNow;
+        setDisabled(pen, !appNow);
+        setDisabled(lock, !appNow);
         pen.classList.toggle('on', penOn);
-        pen.setAttribute('aria-pressed', String(penOn));
+        setAttr(pen, 'aria-pressed', String(penOn));
         lock.classList.toggle('on', lockOn);
         lock.classList.toggle('bx-lock-alt', lockOn);
         lock.classList.toggle('bx-lock-open-alt', !lockOn);
-        lock.setAttribute('aria-pressed', String(lockOn));
+        setAttr(lock, 'aria-pressed', String(lockOn));
         const bar = exq('.App-menu_top .shapes-section');
-        if (bar) body.style.setProperty('--tui-tb-half', Math.ceil(bar.getBoundingClientRect().width / 2) + 'px');
+        if (bar) setStyleVar(body, '--tui-tb-half', Math.ceil(bar.getBoundingClientRect().width / 2) + 'px');
         const props = tools.querySelector('[data-act="props"]');
         const available = !!exq('.Island.App-menu__left');
-        props.disabled = !available;
+        setDisabled(props, !available);
         props.classList.toggle('on', available && body.classList.contains('tui-props-open'));
-        props.setAttribute('aria-pressed', String(props.classList.contains('on')));
+        setAttr(props, 'aria-pressed', String(props.classList.contains('on')));
     };
     // one colour for the top bar, the rail and the tool bars: the rail's, read from the theme
     const syncChrome = () => {
@@ -285,7 +295,7 @@ if (typeof module !== 'undefined') module.exports = [];
         const split = q('.note-split.active');
         if (!split) return;
         const unmark = () => {
-            split.classList.remove('tui-coll-merged', 'tui-coll-compact');
+            for (const c of ['tui-coll-merged', 'tui-coll-compact']) if (split.classList.contains(c)) split.classList.remove(c);
             for (const e of split.querySelectorAll('.tui-coll-static, .tui-coll-bar')) e.classList.remove('tui-coll-static', 'tui-coll-bar');
         };
         const row = split.querySelector(':scope > .title-row');
@@ -395,6 +405,18 @@ if (typeof module !== 'undefined') module.exports = [];
                         if (lockWanted(app)) app.setState(s => ({ activeTool: { ...s.activeTool, locked: true } }));
                     }, 0);
                 }
+                // the eraser deletes strokes as soon as it touches them: Excalidraw greys them out (20 %) and deletes them
+                // only when the pen lifts. Its eraser handler runs at each eraser movement and marks the strokes it
+                // met; right after it, Excalidraw's own eraseElements (what it runs when the pen lifts) deletes them,
+                // saved and undoable as usual. Nothing runs while the eraser meets no stroke.
+                if (!this.__tuiEraseHooked && typeof this.handleEraser === 'function' && typeof this.eraseElements === 'function') {
+                    this.__tuiEraseHooked = true;
+                    const app = this, handleEraser = this.handleEraser;
+                    this.handleEraser = (...args) => {
+                        handleEraser.apply(app, args);
+                        if (app.elementsPendingErasure && app.elementsPendingErasure.size) app.eraseElements();
+                    };
+                }
                 if (this.state && !this.state.penDetected && !this.__tuiPenShown && body.classList.contains('mobile')) {
                     this.__tuiPenShown = true;
                     this.__tuiAutoPen = true;
@@ -446,17 +468,33 @@ if (typeof module !== 'undefined') module.exports = [];
         }
     };
 
+    // quiet while drawing: while a pen or a finger is down on the drawing, the DOM work below (measuring and placing
+    // bars and panels) waits, so the stroke's frames carry only Excalidraw's own work; it runs once when it lifts
+    let drawingDown = null, missedWhileDrawing = false;
+    window.addEventListener('pointerdown', e => {
+        if (e.target && e.target.closest && e.target.closest('canvas.excalidraw__canvas.interactive')) drawingDown = e.pointerId;
+    }, true);
+    for (const type of ['pointerup', 'pointercancel']) {
+        window.addEventListener(type, e => {
+            if (drawingDown === null || e.pointerId !== drawingDown) return;
+            drawingDown = null;
+            if (missedWhileDrawing) { missedWhileDrawing = false; setTimeout(() => { queueCollectionBar(); syncTools(); }, 0); }
+        }, true);
+    }
+    const drawingNow = () => { if (drawingDown === null) return false; missedWhileDrawing = true; return true; };
+
     // at most once per frame: the DOM changes often while a note loads
     let collQueued = false;
     const queueCollectionBar = () => {
+        if (drawingNow()) return;
         if (collQueued) return;
         collQueued = true;
-        requestAnimationFrame(() => { collQueued = false; syncCollectionBar(); syncStrokeRange(); syncCanvasLeft(); watchSidebar(); syncActiveRow(); syncPalettes(); syncPressureRange(); syncOutline(); syncShapes(); syncQuickColours(); });
+        requestAnimationFrame(() => { collQueued = false; syncCollectionBar(); syncStrokeRange(); syncCanvasLeft(); watchSidebar(); syncActiveRow(); syncPalettes(); syncPressureRange(); syncOutline(); syncShapes(); syncQuickColours(); syncPenModeRow(); });
     };
 
-    new MutationObserver(() => { place(); syncNotes(); queueCollectionBar(); }).observe(document.body, { childList: true, subtree: true });
+    new MutationObserver(() => { if (drawingNow()) return; place(); syncNotes(); queueCollectionBar(); }).observe(document.body, { childList: true, subtree: true });
     window.addEventListener('resize', queueCollectionBar);
-    setInterval(() => { place(); syncNotes(); syncChrome(); syncTools(); syncPanels(); syncCollectionBar(); syncStrokeRange(); syncTreePick(); syncCanvasLeft(); watchSidebar(); syncActiveRow(); syncPalettes(); syncPressureRange(); syncOutline(); syncShapes(); syncQuickColours(); }, 250);
+    setInterval(() => { if (drawingNow()) return; place(); syncNotes(); syncChrome(); syncTools(); syncPanels(); syncCollectionBar(); syncStrokeRange(); syncTreePick(); syncCanvasLeft(); watchSidebar(); syncActiveRow(); syncPalettes(); syncPressureRange(); syncOutline(); syncShapes(); syncQuickColours(); syncPenModeRow(); }, 250);
     place();
     syncNotes();
 
@@ -837,7 +875,8 @@ if (typeof module !== 'undefined') module.exports = [];
     tip.hidden = true;
     document.body.appendChild(tip);
     const tipName = el => {
-        if (el.matches(SHAPE_BTN)) return 'Shapes';   // rectangle, diamond and ellipse share that button (below)
+        const group = TOOL_GROUPS.find(g => el.matches(g.btnSel));   // Shapes and Lines share one button (below)
+        if (group) return group.name;
         let n = el.getAttribute('aria-label') || el.getAttribute('title') || el.getAttribute('data-bs-original-title') ||
             el.getAttribute('data-cke-tooltip-text') || '';
         if (!n) {
@@ -990,6 +1029,61 @@ if (typeof module !== 'undefined') module.exports = [];
         if (t.closest('.recent-changes-dialog .note-title a')) setTimeout(closeRecent, 150);
     }, true);
 
+    // the two docked dialogs open without a flash: Bootstrap adds the dark backdrop (fading in) about a third of a
+    // second before the dialog itself, so the whole app dimmed for a moment. From the tap on their buttons the
+    // backdrop is hidden (body.tui-docking, tablet_ui.css), until neither dialog is open any more.
+    let dockingSince = 0;
+    document.addEventListener('pointerdown', e => {
+        const t = e.target;
+        if (!t || !t.closest || !wide()) return;
+        if (t.closest('#launcher-pane .launcher-button.bx-history, .title-row .mobile-note-panel-button')) {
+            dockingSince = Date.now();
+            body.classList.add('tui-docking');
+        }
+    }, true);
+    setInterval(() => {
+        if (body.classList.contains('tui-docking') && !recentPanel() && !notePanel() && Date.now() - dockingSince > 1500 &&
+            !q('.modal.recent-changes-dialog[style*="display: block"], .modal.mobile-note-panel[style*="display: block"]')) {
+            body.classList.remove('tui-docking');
+        }
+    }, 300);
+
+    // a tap on a top-bar button while a right side panel is open ("…", the note panel, the tool options): the panel
+    // closes at the first touch, the note area widens by the panel's width and the buttons move before the click, which
+    // then lands beside the button (a tap on the info button only closed "…"). Such taps act when the finger goes down,
+    // on the button under it, and the click that follows is dropped.
+    // Trilium closes "…" at the touch itself, before this listener: the state is read at pointerover, which comes
+    // just before pointerdown (a finger or the pen has no hover before it touches).
+    let earlyTapUntil = 0, rightOpenAt = 0;
+    const rightPanelOpen = () => !!(q('.tn-dropdown-portal.note-actions > .dropdown-menu.show') || notePanel() ||
+        (body.classList.contains('tui-props-open') && q('.note-split.active .excalidraw .Island.App-menu__left')));
+    window.addEventListener('pointerover', () => { if (rightPanelOpen()) rightOpenAt = Date.now(); }, true);
+    // While "…" is open, Trilium lays a transparent cover over the whole screen that catches the touch and closes the
+    // menu: the button is looked for under the cover, and the cover is left to close the menu.
+    window.addEventListener('pointerdown', e => {
+        let t = e.target;
+        if (!t || !t.closest || !wide()) return;
+        const onCover = !!t.closest('.global-menu-cover');
+        if (onCover) t = document.elementsFromPoint(e.clientX, e.clientY).find(el => !el.closest('.global-menu-cover')) || t;
+        const b = t.closest('.note-split.active .title-row button, .note-split.active .title-row .icon-action');
+        if (!b) return;
+        if (!rightPanelOpen() && Date.now() - rightOpenAt > 600) return;
+        if (onCover && b.matches('.bx-dots-horizontal-rounded')) return;   // "…" itself: the cover closes it
+        if (!onCover) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+        }
+        penTap = null;   // nor is it completed later as a pen tap
+        earlyTapUntil = Date.now() + 800;
+        b.click();
+    }, true);
+    window.addEventListener('click', e => {
+        if (!e.isTrusted || Date.now() > earlyTapUntil) return;
+        earlyTapUntil = 0;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+    }, true);
+
     // ---------------------------------------------------------------- outline of text notes (landscape)
     // A text note with three headings or more lists them in the free space right of the reading column; a tap
     // scrolls to that heading, and the heading in view is marked. Shown only where it fits (no side panel in the way).
@@ -1044,68 +1138,83 @@ if (typeof module !== 'undefined') module.exports = [];
     document.addEventListener('scroll', queueOutline, true);
     window.addEventListener('resize', queueOutline);
 
-    // ---------------------------------------------------------------- Shapes: one button for rectangle, diamond, ellipse
-    // The three shape tools share one button of the tool bar: Excalidraw's rectangle button, which shows the last
-    // shape used (tablet_ui.css hides the other two and draws the icon). A tap picks that shape; a tap while a shape
-    // is active opens a small bar with the three above the button. The last shape is kept on this device.
-    const SHAPES = ['rectangle', 'diamond', 'ellipse'];
-    const SHAPE_KEY = 'tui-shape-v1';
-    const SHAPE_BTN = '.excalidraw .App-toolbar label:has(input[data-testid="toolbar-rectangle"])';
-    let lastShape = 'rectangle';
-    try { const v = localStorage.getItem(SHAPE_KEY); if (SHAPES.includes(v)) lastShape = v; } catch (e) { /* default */ }
-    const shapeBar = document.createElement('div');
-    shapeBar.id = 'tui-shape-bar';
-    shapeBar.hidden = true;
-    shapeBar.setAttribute('role', 'menu');
-    shapeBar.innerHTML = SHAPES.map(s =>
-        `<button type="button" role="menuitem" data-shape="${s}" aria-label="${s[0].toUpperCase() + s.slice(1)}"></button>`).join('');
-    document.body.appendChild(shapeBar);
-    const shapeButton = () => [...document.querySelectorAll('.note-split.active ' + SHAPE_BTN)].find(b => b.getBoundingClientRect().width > 0);
-    const setShapeBar = on => {
-        const btn = on && shapeButton();
-        if (!btn) { shapeBar.hidden = true; return; }
-        shapeBar.hidden = false;
-        const r = btn.getBoundingClientRect(), w = shapeBar.offsetWidth, h = shapeBar.offsetHeight;
-        shapeBar.style.left = Math.round(Math.min(window.innerWidth - w - 8, Math.max(8, r.left + r.width / 2 - w / 2))) + 'px';
-        shapeBar.style.top = Math.round(r.top - h - 14) + 'px';
+    // ---------------------------------------------------------------- Shapes and Lines: one tool button per group
+    // Rectangle, diamond and ellipse share one button of the tool bar ("Shapes"), arrow and line another ("Lines"):
+    // Excalidraw's rectangle and arrow buttons, which show the last tool used in their group (tablet_ui.css hides the
+    // other buttons and draws the icons). A tap picks that tool; a tap while a tool of the group is active opens a
+    // small bar with the group's tools above the button. The last tool of each group is kept on this device.
+    const TOOL_GROUPS = [
+        { name: 'Shapes', cls: 'shape', tools: ['rectangle', 'diamond', 'ellipse'], key: 'tui-shape-v1' },
+        { name: 'Lines', cls: 'line', tools: ['arrow', 'line'], key: 'tui-line-v1' }
+    ];
+    const setGroupBar = (g, on) => {
+        const btn = on && [...document.querySelectorAll('.note-split.active ' + g.btnSel)].find(b => b.getBoundingClientRect().width > 0);
+        if (!btn) { g.bar.hidden = true; return; }
+        for (const o of TOOL_GROUPS) if (o !== g) o.bar.hidden = true;
+        g.bar.hidden = false;
+        const r = btn.getBoundingClientRect(), w = g.bar.offsetWidth, h = g.bar.offsetHeight;
+        g.bar.style.left = Math.round(Math.min(window.innerWidth - w - 8, Math.max(8, r.left + r.width / 2 - w / 2))) + 'px';
+        g.bar.style.top = Math.round(r.top - h - 14) + 'px';
     };
+    for (const g of TOOL_GROUPS) {
+        g.btnSel = `.excalidraw .App-toolbar label:has(input[data-testid="toolbar-${g.tools[0]}"])`;
+        g.last = g.tools[0];
+        try { const v = localStorage.getItem(g.key); if (g.tools.includes(v)) g.last = v; } catch (e) { /* default */ }
+        g.bar = document.createElement('div');
+        g.bar.className = 'tui-group-bar';
+        g.bar.id = `tui-${g.cls}-bar`;
+        g.bar.hidden = true;
+        g.bar.setAttribute('role', 'menu');
+        g.bar.setAttribute('aria-label', g.name);
+        g.bar.innerHTML = g.tools.map(s =>
+            `<button type="button" role="menuitem" data-tool="${s}" aria-label="${s[0].toUpperCase() + s.slice(1)}"></button>`).join('');
+        document.body.appendChild(g.bar);
+        g.bar.addEventListener('click', e => {
+            const b = e.target.closest('[data-tool]');
+            const app = canvasApp();
+            if (!b || !app) return;
+            app.setActiveTool({ type: b.dataset.tool });
+            setGroupBar(g, false);
+            setTimeout(syncShapes, 30);
+        });
+    }
+    const GROUP_BTNS = TOOL_GROUPS.map(g => g.btnSel).join(', ');
     const syncShapes = () => {
         const app = canvasApp();
         const type = app && app.state.activeTool && app.state.activeTool.type;
-        if (SHAPES.includes(type) && type !== lastShape) {
-            lastShape = type;
-            try { localStorage.setItem(SHAPE_KEY, lastShape); } catch (e) { /* kept for this session */ }
+        for (const g of TOOL_GROUPS) {
+            if (g.tools.includes(type) && type !== g.last) {
+                g.last = type;
+                try { localStorage.setItem(g.key, type); } catch (e) { /* kept for this session */ }
+            }
+            for (const s of g.tools) {
+                const c = `tui-${g.cls}-${s}`;
+                if (body.classList.contains(c) !== (s === g.last)) body.classList.toggle(c, s === g.last);
+            }
+            const on = g.tools.includes(type);
+            if (body.classList.contains(`tui-${g.cls}-on`) !== on) body.classList.toggle(`tui-${g.cls}-on`, on);
+            for (const b of g.bar.querySelectorAll('[data-tool]')) b.classList.toggle('on', b.dataset.tool === type);
+            if (!g.bar.hidden && !q('.note-split.active.type-canvas')) setGroupBar(g, false);
         }
-        for (const s of SHAPES) {
-            if (body.classList.contains('tui-shape-' + s) !== (s === lastShape)) body.classList.toggle('tui-shape-' + s, s === lastShape);
-        }
-        if (body.classList.contains('tui-shape-on') !== SHAPES.includes(type)) body.classList.toggle('tui-shape-on', SHAPES.includes(type));
-        for (const b of shapeBar.querySelectorAll('[data-shape]')) b.classList.toggle('on', b.dataset.shape === type);
-        if (!shapeBar.hidden && !q('.note-split.active.type-canvas')) setShapeBar(false);
     };
     window.addEventListener('click', e => {
         const t = e.target;
-        const btn = t && t.closest && t.closest(SHAPE_BTN);
-        if (!btn) return;
-        e.preventDefault();   // not Excalidraw's own rectangle choice
+        const btn = t && t.closest && t.closest(GROUP_BTNS);
+        const g = btn && TOOL_GROUPS.find(x => btn.matches(x.btnSel));
+        if (!g) return;
+        e.preventDefault();   // not Excalidraw's own choice of that one tool
         e.stopImmediatePropagation();
         const app = canvasApp();
         if (!app) return;
-        if (SHAPES.includes(app.state.activeTool.type)) setShapeBar(shapeBar.hidden);
-        else { app.setActiveTool({ type: lastShape }); setShapeBar(false); }
+        if (g.tools.includes(app.state.activeTool.type)) setGroupBar(g, g.bar.hidden);
+        else { app.setActiveTool({ type: g.last }); setGroupBar(g, false); }
         setTimeout(syncShapes, 30);
     }, true);
-    shapeBar.addEventListener('click', e => {
-        const b = e.target.closest('[data-shape]');
-        const app = canvasApp();
-        if (!b || !app) return;
-        app.setActiveTool({ type: b.dataset.shape });
-        setShapeBar(false);
-        setTimeout(syncShapes, 30);
-    });
     document.addEventListener('pointerdown', e => {   // a tap elsewhere closes the bar (and still does its own job)
-        if (shapeBar.hidden || !e.target || !e.target.closest) return;
-        if (!e.target.closest('#tui-shape-bar') && !e.target.closest(SHAPE_BTN)) setShapeBar(false);
+        if (!e.target || !e.target.closest) return;
+        for (const g of TOOL_GROUPS) {
+            if (!g.bar.hidden && !e.target.closest('#' + g.bar.id) && !e.target.closest(g.btnSel)) setGroupBar(g, false);
+        }
     }, true);
 
     // ---------------------------------------------------------------- the pencil's colours, one tap away
@@ -1117,7 +1226,7 @@ if (typeof module !== 'undefined') module.exports = [];
     quickColours.id = 'tui-quick-colours';
     quickColours.hidden = true;
     quickColours.setAttribute('role', 'toolbar');
-    quickColours.setAttribute('aria-label', 'Pencil colour');
+    quickColours.setAttribute('aria-label', 'Colour and thickness');
     document.body.appendChild(quickColours);
     let quickSig = '';
     const strokeChoices = ex => {
@@ -1130,17 +1239,21 @@ if (typeof module !== 'undefined') module.exports = [];
     const syncQuickColours = () => {
         const ex = q('.note-split.active .excalidraw');
         const app = ex && ex.__tuiApp;
+        const tool = app && app.state.activeTool && app.state.activeTool.type;
         const bar = ex && [...ex.querySelectorAll('.App-toolbar')].find(b => b.getBoundingClientRect().width > 0);
-        const show = !!(bar && app && app.state.activeTool && app.state.activeTool.type === 'freedraw') &&
-            !body.classList.contains('tui-props-open') && !ex.querySelector('.App-toolbar__extra-tools-dropdown');
+        const show = !!bar && QUICK_TOOLS.includes(tool) && !body.classList.contains('tui-props-open') &&
+            !ex.querySelector('.App-toolbar__extra-tools-dropdown') && TOOL_GROUPS.every(g => g.bar.hidden);
         if (!show) { if (!quickColours.hidden) quickColours.hidden = true; return; }
         const colours = strokeChoices(ex);
         const current = String(app.state.currentItemStrokeColor || '').toLowerCase();
-        const sig = colours.join(',') + '|' + current;
+        const width = app.state.currentItemStrokeWidth;
+        const sig = `${colours.join(',')}|${current}|${tool === 'text' ? '' : width}`;
         if (sig !== quickSig) {
             quickSig = sig;
             quickColours.innerHTML = colours.map(c =>
-                `<button type="button" class="tui-quick-swatch${c === current ? ' active' : ''}" data-colour="${c}" aria-label="Colour ${c}" style="--tui-swatch:${c}"></button>`).join('');
+                `<button type="button" class="tui-quick-swatch${c === current ? ' active' : ''}" data-colour="${c}" aria-label="Colour ${c}" style="--tui-swatch:${c}"></button>`).join('') +
+                (tool === 'text' ? '' : '<span class="tui-quick-sep"></span>' + QUICK_WIDTHS.map(([w, label]) =>
+                    `<button type="button" class="tui-quick-width${w === width ? ' active' : ''}" data-width="${w}" aria-label="${label}" style="--tui-w:${w}"></button>`).join(''));
         }
         quickColours.hidden = false;
         const r = bar.getBoundingClientRect(), w = quickColours.offsetWidth, h = quickColours.offsetHeight;
@@ -1148,12 +1261,40 @@ if (typeof module !== 'undefined') module.exports = [];
         quickColours.style.top = Math.round(r.top - h - 10) + 'px';
     };
     quickColours.addEventListener('click', e => {
-        const b = e.target.closest('[data-colour]');
-        if (!b) return;
-        applyColour('stroke', b.dataset.colour);
+        const c = e.target.closest('[data-colour]'), w = e.target.closest('[data-width]');
+        if (c) applyColour('stroke', c.dataset.colour);
+        if (w) {
+            const app = canvasApp();
+            const action = app && app.actionManager.actions.changeStrokeWidth;
+            if (action) app.actionManager.executeAction(action, 'ui', Number(w.dataset.width));
+        }
         quickSig = '';
         setTimeout(syncQuickColours, 30);
     });
+
+    // ---------------------------------------------------------------- pen mode: a switch in the tool options
+    // Pen mode (only the pen draws; one finger moves the sheet) turns on by itself at the first pen stroke. Its switch
+    // sits at the top of the tool options instead of the top bar.
+    const syncPenModeRow = () => {
+        const ex = q('.note-split.active .excalidraw');
+        const app = ex && ex.__tuiApp;
+        const column = ex && ex.querySelector('.Island.App-menu__left .panelColumn');
+        if (!app || !column) return;
+        let row = column.querySelector(':scope > .tui-penmode-row');
+        if (!row) {
+            row = document.createElement('fieldset');
+            row.className = 'tui-penmode-row';
+            row.innerHTML = '<legend>Pen mode</legend><label><input type="checkbox" role="switch">' +
+                '<span>Only the pen draws; one finger moves the sheet</span></label>';
+            row.querySelector('input').addEventListener('change', ev => {
+                const a = canvasApp();
+                if (a) a.setState({ penMode: ev.target.checked, penDetected: true });
+            });
+        }
+        if (column.firstElementChild !== row) column.prepend(row);
+        const input = row.querySelector('input');
+        if (input.checked !== !!app.state.penMode) input.checked = !!app.state.penMode;
+    };
 
     // ---------------------------------------------------------------- the drawing stays put when a left panel opens
     // a left panel (tree, Menu, New) or the full-screen drawing moves the drawing area's left edge; Excalidraw would
