@@ -47,6 +47,8 @@ or more, so phones and the desktop layout are unchanged.
     (thin, medium, thick) with one tap, without opening the tool options; it sits on the tool bar's line, as one
     island with it (smaller in portrait), or above it where both do not fit;
   - the eraser deletes strokes as soon as it touches them (Excalidraw greys them out until the pen lifts);
+  - the pen's side button switches to the eraser and back, where the tablet's pen service passes it to apps as a media
+    key (as in a "remote control" mode: one press, not a hold, so there is no "erase while held");
   - a "Pen pressure" slider stretches the pen's pressure, so light and firm strokes differ more;
   - in pen mode one finger moves the sheet; the drawing stays in place when a side panel opens;
   - images in canvases load in the Android app too (its requests repeat the image's `Content-Type` header, and the

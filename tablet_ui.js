@@ -28,7 +28,8 @@
      share a "Shapes" button, arrow and line a "Lines" button; a drawing tool stays active after drawing (Excalidraw's
      padlock, always on: its button is hidden); pen mode is a switch in the tool options; a row of colours and three
      thicknesses above the tool bar while a drawing tool is active; the eraser deletes strokes as soon as it
-     touches them. A pen side button that reaches the page as
+     touches them. The pen's button, in the pen service's Remote control mode, switches to the eraser and back.
+     A pen side button that reaches the page as
      button 2 erases while held (on the tablet this was made on, the pen's button never reaches the page).
    - Canvas images load in the Android app too (its fetch repeats the Content-Type header, see below).
    - "Note panel" (outline, attributes, connections): an info icon, and in landscape a docked right panel, like "…".
@@ -978,6 +979,30 @@ if (typeof module !== 'undefined') module.exports = [];
         if (barrelPointer === null && Date.now() > barrelUntil) return;
         e.preventDefault();
         e.stopImmediatePropagation();
+    }, true);
+
+    // ---------------------------------------------------------------- the pen's button: eraser and back
+    // The button of a Bluetooth pen paired with the tablet's pen service may reach apps only in that service's "remote
+    // control" mode, as a media key at each press (MediaTrackPrevious; keydown and keyup together,
+    // nothing while it is held). On a canvas such a key switches to the eraser, and the next one back to the tool used
+    // before. A second key within 250 ms (a double press) is ignored.
+    const PEN_KEYS = new Set(['MediaTrackPrevious', 'MediaTrackNext', 'MediaPlayPause', 'MediaPlay', 'MediaPause']);
+    let toolBeforeEraser = null, lastPenKey = 0;
+    window.addEventListener('keydown', e => {
+        if (!PEN_KEYS.has(e.key)) return;
+        const app = canvasApp();
+        if (!app || !q('.note-split.active.type-canvas')) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        if (e.repeat || Date.now() - lastPenKey < 250) return;
+        lastPenKey = Date.now();
+        const type = app.state.activeTool && app.state.activeTool.type;
+        if (type === 'eraser') app.setActiveTool({ type: toolBeforeEraser || 'freedraw' });
+        else { toolBeforeEraser = type; app.setActiveTool({ type: 'eraser' }); }
+        setTimeout(syncShapes, 30);
+    }, true);
+    window.addEventListener('keyup', e => {
+        if (PEN_KEYS.has(e.key) && canvasApp() && q('.note-split.active.type-canvas')) { e.preventDefault(); e.stopImmediatePropagation(); }
     }, true);
 
     // ---------------------------------------------------------------- "Note panel": a docked right panel
