@@ -451,12 +451,12 @@ if (typeof module !== 'undefined') module.exports = [];
     const queueCollectionBar = () => {
         if (collQueued) return;
         collQueued = true;
-        requestAnimationFrame(() => { collQueued = false; syncCollectionBar(); syncStrokeRange(); syncCanvasLeft(); watchSidebar(); syncActiveRow(); syncPalettes(); syncPressureRange(); syncOutline(); syncShapes(); });
+        requestAnimationFrame(() => { collQueued = false; syncCollectionBar(); syncStrokeRange(); syncCanvasLeft(); watchSidebar(); syncActiveRow(); syncPalettes(); syncPressureRange(); syncOutline(); syncShapes(); syncQuickColours(); });
     };
 
     new MutationObserver(() => { place(); syncNotes(); queueCollectionBar(); }).observe(document.body, { childList: true, subtree: true });
     window.addEventListener('resize', queueCollectionBar);
-    setInterval(() => { place(); syncNotes(); syncChrome(); syncTools(); syncPanels(); syncCollectionBar(); syncStrokeRange(); syncTreePick(); syncCanvasLeft(); watchSidebar(); syncActiveRow(); syncPalettes(); syncPressureRange(); syncOutline(); syncShapes(); }, 250);
+    setInterval(() => { place(); syncNotes(); syncChrome(); syncTools(); syncPanels(); syncCollectionBar(); syncStrokeRange(); syncTreePick(); syncCanvasLeft(); watchSidebar(); syncActiveRow(); syncPalettes(); syncPressureRange(); syncOutline(); syncShapes(); syncQuickColours(); }, 250);
     place();
     syncNotes();
 
@@ -966,10 +966,29 @@ if (typeof module !== 'undefined') module.exports = [];
         }
     }, true);
     document.documentElement.addEventListener('focusin', e => {
-        const p = notePanel();
+        const p = notePanel() || recentPanel();
         if (!p || !wide() || p.contains(e.target)) return;
         e.stopPropagation();   // Bootstrap's focus trap listens on the document
     });
+
+    // ---------------------------------------------------------------- "Recent": a docked left panel
+    // Trilium's "Recent changes" dialog is, in landscape, the left side panel like Menu and Bookmarks (tablet_ui.css):
+    // the Recent button opens and closes it, and it takes turns with the other left panels (Menu, tree, New, Search,
+    // Bookmarks). A note opened from it closes it, as in the tree.
+    const recentPanel = () => q('.modal.recent-changes-dialog.show');
+    const closeRecent = () => recentPanel()?.querySelector('.btn-close')?.click();
+    document.addEventListener('click', e => {
+        const t = e.target;
+        if (!t || !t.closest || !wide() || !recentPanel()) return;
+        if (t.closest('#launcher-pane .launcher-button.bx-history')) {   // open: the button closes it
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            closeRecent();
+            return;
+        }
+        if (t.closest('#launcher-pane')) { closeRecent(); return; }   // another left panel takes the place
+        if (t.closest('.recent-changes-dialog .note-title a')) setTimeout(closeRecent, 150);
+    }, true);
 
     // ---------------------------------------------------------------- outline of text notes (landscape)
     // A text note with three headings or more lists them in the free space right of the reading column; a tap
@@ -1088,6 +1107,53 @@ if (typeof module !== 'undefined') module.exports = [];
         if (shapeBar.hidden || !e.target || !e.target.closest) return;
         if (!e.target.closest('#tui-shape-bar') && !e.target.closest(SHAPE_BTN)) setShapeBar(false);
     }, true);
+
+    // ---------------------------------------------------------------- the pencil's colours, one tap away
+    // While the pencil is the active tool, a row of colours sits above the tool bar: the Stroke colours of the tool
+    // options (Excalidraw's, minus the ones removed, then the user's own), the current one marked. A tap sets the
+    // colour of the next strokes without opening the tool options. Hidden while the tool options are open.
+    const DEFAULT_STROKES = ['#1e1e1e', '#e03131', '#2f9e44', '#1971c2', '#f08c00'];
+    const quickColours = document.createElement('div');
+    quickColours.id = 'tui-quick-colours';
+    quickColours.hidden = true;
+    quickColours.setAttribute('role', 'toolbar');
+    quickColours.setAttribute('aria-label', 'Pencil colour');
+    document.body.appendChild(quickColours);
+    let quickSig = '';
+    const strokeChoices = ex => {
+        const column = ex.querySelector('.Island.App-menu__left .panelColumn');
+        const row = column && [...column.children].find(r => { const h = r.querySelector(':scope > h3'); return h && KINDS.stroke.label.test(h.textContent); });
+        const picks = row ? [...row.querySelectorAll('.color-picker__top-picks .color-picker__button')].map(topPickColour).filter(Boolean) : [];
+        const base = picks.length ? picks : DEFAULT_STROKES;
+        return [...base.filter(c => !palette.hidden.stroke.includes(c)), ...palette.stroke.filter(c => !base.includes(c))];
+    };
+    const syncQuickColours = () => {
+        const ex = q('.note-split.active .excalidraw');
+        const app = ex && ex.__tuiApp;
+        const bar = ex && [...ex.querySelectorAll('.App-toolbar')].find(b => b.getBoundingClientRect().width > 0);
+        const show = !!(bar && app && app.state.activeTool && app.state.activeTool.type === 'freedraw') &&
+            !body.classList.contains('tui-props-open') && !ex.querySelector('.App-toolbar__extra-tools-dropdown');
+        if (!show) { if (!quickColours.hidden) quickColours.hidden = true; return; }
+        const colours = strokeChoices(ex);
+        const current = String(app.state.currentItemStrokeColor || '').toLowerCase();
+        const sig = colours.join(',') + '|' + current;
+        if (sig !== quickSig) {
+            quickSig = sig;
+            quickColours.innerHTML = colours.map(c =>
+                `<button type="button" class="tui-quick-swatch${c === current ? ' active' : ''}" data-colour="${c}" aria-label="Colour ${c}" style="--tui-swatch:${c}"></button>`).join('');
+        }
+        quickColours.hidden = false;
+        const r = bar.getBoundingClientRect(), w = quickColours.offsetWidth, h = quickColours.offsetHeight;
+        quickColours.style.left = Math.round(Math.min(window.innerWidth - w - 8, Math.max(8, r.left + r.width / 2 - w / 2))) + 'px';
+        quickColours.style.top = Math.round(r.top - h - 10) + 'px';
+    };
+    quickColours.addEventListener('click', e => {
+        const b = e.target.closest('[data-colour]');
+        if (!b) return;
+        applyColour('stroke', b.dataset.colour);
+        quickSig = '';
+        setTimeout(syncQuickColours, 30);
+    });
 
     // ---------------------------------------------------------------- the drawing stays put when a left panel opens
     // a left panel (tree, Menu, New) or the full-screen drawing moves the drawing area's left edge; Excalidraw would

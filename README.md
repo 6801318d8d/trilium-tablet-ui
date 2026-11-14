@@ -16,10 +16,13 @@ or more, so phones and the desktop layout are unchanged.
 ## What it changes
 
 - **Landscape: a navigation rail** on the left with a label under each launcher; Sync at the bottom.
-- **Docked side panels.** On the left: Menu, the note tree, Bookmarks, the note types of "New" or the quick search,
-  one at a time. On the right: the note's "…" menu, the note panel (outline, attributes, connections) or the canvas
-  tool options. The note area shrinks instead of being covered, and the panels start below the system status bar.
-- **Menu:** one column of equal rows, in groups like a settings list.
+- **Docked side panels.** On the left: Menu, the note tree, Recent changes, Bookmarks, the note types of "New" or the
+  quick search, one at a time. On the right: the note's "…" menu, the note panel (outline, attributes, connections) or
+  the canvas tool options. The note area shrinks instead of being covered, and the panels start below the system
+  status bar.
+- **Menu and the note's "…" menu:** one column of equal rows, in groups like a settings list.
+- **Recent changes:** one row per note (title, path, time on the right; the whole row opens the note), the day on top
+  while scrolling, deleted notes dimmed with a small "undelete" button.
 - **Note tree:** the top bar names the folder you are in ("‹" goes up a level); the open note is highlighted; the tree
   closes when a note is chosen in it or the open note is tapped.
 - **New** asks for the note type first, with an optional title; without one the note is named after its type and the
@@ -39,8 +42,9 @@ or more, so phones and the desktop layout are unchanged.
   - tool options open in the right panel with a button; tapping a tool only changes the tool;
   - stroke width is a continuous slider; Stroke and Background get a row of your own colours (add, apply, remove,
     and Excalidraw's five can be removed too);
-  - a "Pen pressure" slider stretches the pen's pressure, so light and firm strokes differ more; holding the pen's
-    side button erases while it touches;
+  - with the pencil, a row of colours above the tool bar changes the colour with one tap, without opening the tool
+    options;
+  - a "Pen pressure" slider stretches the pen's pressure, so light and firm strokes differ more;
   - in pen mode one finger moves the sheet; the drawing stays in place when a side panel opens;
   - images in canvases load in the Android app too (its requests repeat the image's `Content-Type` header, and the
     data URL built from it did not decode).
