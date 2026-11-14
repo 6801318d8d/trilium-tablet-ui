@@ -27,9 +27,9 @@ or more, so phones and the desktop layout are unchanged.
   while scrolling, deleted notes dimmed with a small "undelete" button. **Quick search results** and **Bookmarks** use
   the same rows: title, path under it (and a two-line extract for search results, none for raw JSON).
 - **Note tree:** the top bar names the folder you are in ("‹" goes up a level); the open note is highlighted; the tree
-  closes when a note is chosen in it or the open note is tapped. A long press on a note, or on the folder's name,
-  opens its menu (Move, Clone, Duplicate, Archive, colour…), which takes the tree's place, titled with the note's name.
-  The folder's own "…" is gone, so the only "…" on screen is the open note's.
+  closes when a note is chosen in it or the open note is tapped. A long press on a note, or the "…" next to the
+  folder's name, opens that note's menu (Move, Clone, Duplicate, Archive, Insert child note, colour…), which takes the
+  tree's place, titled with the note's name.
 - **New** asks for the note type first, with an optional title; without one the note is named after its type and the
   time ("Canvas 07:42"), so the tree does not fill up with notes called "New note". The tree's "+" opens the same
   panel ("New note in ‹folder›", Notes stays green), and the note goes into the folder the tree shows. With the

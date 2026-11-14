@@ -1107,8 +1107,8 @@ if (typeof module !== 'undefined') module.exports = [];
     document.addEventListener('visibilitychange', () => { if (!document.hidden) syncSoon(300); });
 
     // ---------------------------------------------------------------- the tree's note menu: a docked left panel
-    // A long press on a row or on the folder's header (whose "…" tablet_ui.css hides) opens Trilium's note context
-    // menu as a floating box over the rail and the tree, taller than the screen. In landscape it becomes the left panel
+    // The "…" of the folder's header, or a long press on it or on a row, opens Trilium's note context menu as a
+    // floating box over the rail and the tree, taller than the screen. In landscape it becomes the left panel
     // in place of the tree (tablet_ui.css), titled with the note's name. A touch in the tree marks the menu that follows
     // (body.tui-tree-ctx), so it docks from its first frame and other context menus keep their own place.
     document.addEventListener('pointerdown', e => {
