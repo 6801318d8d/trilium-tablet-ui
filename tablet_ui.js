@@ -22,6 +22,14 @@
    - Canvas tool options: stroke width is a continuous slider (0.5-12) instead of three buttons; Stroke and Background
      have a row of the user's own colours (add, apply, remove), kept on the device; the pencil has a "Pen pressure"
      slider that stretches the pen's pressure.
+   - A long press on an icon button shows its name (hover tooltips never show on a touch screen); that press does not
+     press the button.
+   - Canvas: one zoom button with a menu (zoom in, zoom out, fit to drawing, 100%); the pen's side button erases while
+     it is held; the padlock (keep the tool active) stays on in every note, after any reset, unless opened by hand there.
+   - Canvas images load in the Android app too (its fetch repeats the Content-Type header, see below).
+   - "Note panel" (outline, attributes, connections): an info icon, and in landscape a docked right panel, like "…".
+   - "New": an optional title; without one the note is named after its type and the time.
+   - Text notes in landscape: the outline of the headings in the free space right of the reading column.
    Turn it off: rename the label to #disabled:widget and restart the app. */
 // a #widget note must hand Trilium its widgets: none here (the code below only adds behaviour)
 if (typeof module !== 'undefined') module.exports = [];
@@ -35,13 +43,38 @@ if (typeof module !== 'undefined') module.exports = [];
     const q = s => document.querySelector(s);
     const exq = s => q('.note-split.active .excalidraw ' + s);
 
+    // ---------------------------------------------------------------- canvas images: one Content-Type
+    // The Android app answers api/ requests through its own fetch, which repeats the Content-Type header
+    // ("image/png, image/png"). The blob of a canvas image gets that type, the data URL Trilium builds from it
+    // ("data:image/png, image/png;base64,...") does not decode, and Excalidraw shows a broken image although the
+    // attachment is fine. An image response whose Content-Type repeats one value gets that value once.
+    if (typeof window.fetch === 'function' && !window.fetch.__tuiOneType) {
+        const fetchBefore = window.fetch;
+        const fetchOneType = async function (...args) {
+            const res = await fetchBefore.apply(this, args);
+            try {
+                const ct = res.headers.get('content-type') || '';
+                if (res.status !== 200 || !ct.includes(',')) return res;
+                const parts = ct.split(',').map(s => s.trim()).filter(Boolean);
+                const one = parts[0].toLowerCase();
+                if (!one.startsWith('image/') || !parts.every(p => p.toLowerCase() === one)) return res;
+                const headers = new Headers(res.headers);
+                headers.set('content-type', parts[0]);
+                const bytes = await res.arrayBuffer();
+                return new Response(new Blob([bytes], { type: parts[0] }), { status: res.status, statusText: res.statusText, headers });
+            } catch (err) {
+                return res;
+            }
+        };
+        fetchOneType.__tuiOneType = true;
+        window.fetch = fetchOneType;
+    }
+
     // ---------------------------------------------------------------- canvas tools in the top bar
     const tools = document.createElement('div');
     tools.id = 'tui-canvas-tools';
     tools.innerHTML =
-        '<button type="button" data-act="zoom-out" class="icon-action bx bx-minus" aria-label="Zoom out"></button>' +
-        '<button type="button" data-act="zoom-reset" class="tui-zoom" aria-label="Reset zoom">100%</button>' +
-        '<button type="button" data-act="zoom-in" class="icon-action bx bx-plus" aria-label="Zoom in"></button>' +
+        '<button type="button" data-act="zoom" class="tui-zoom" aria-label="Zoom" aria-haspopup="menu" aria-expanded="false">100%</button>' +
         '<span class="tui-sep"></span>' +
         '<button type="button" data-act="undo" class="icon-action bx bx-undo" aria-label="Undo"></button>' +
         '<button type="button" data-act="redo" class="icon-action bx bx-redo" aria-label="Redo"></button>' +
@@ -51,9 +84,6 @@ if (typeof module !== 'undefined') module.exports = [];
         '<button type="button" data-act="props" class="icon-action bx bx-slider-alt tui-props" aria-label="Tool options"></button>' +
         '<button type="button" data-act="draw" class="icon-action bx tui-draw" aria-label="Full-screen drawing"></button>';
     const target = {
-        'zoom-out': '.zoom-out-button',
-        'zoom-reset': '.reset-zoom-button',
-        'zoom-in': '.zoom-in-button',
         'undo': '.undo-button-container button',
         'redo': '.redo-button-container button'
     };
@@ -67,15 +97,71 @@ if (typeof module !== 'undefined') module.exports = [];
         drawBtn.setAttribute('aria-label', on ? 'Done: show the note tree and the bars' : 'Full-screen drawing');
     };
     renderDraw();
+    // zoom: one button showing the zoom level; its menu zooms in and out (it stays open for repeated taps), fits the
+    // drawing to the screen or goes back to 100%. Pinching with two fingers still zooms too.
+    const zoomBtn = tools.querySelector('[data-act="zoom"]');
+    const zoomMenu = document.createElement('div');
+    zoomMenu.id = 'tui-zoom-menu';
+    zoomMenu.hidden = true;
+    zoomMenu.setAttribute('role', 'menu');
+    zoomMenu.innerHTML = [['in', 'bx-zoom-in', 'Zoom in'], ['out', 'bx-zoom-out', 'Zoom out'], ['fit', 'bx-expand-alt', 'Fit to drawing'],
+        ['reset', 'bx-reset', 'Zoom to 100%']].map(([z, icon, label]) =>
+        `<button type="button" role="menuitem" data-z="${z}"><span class="bx ${icon}"></span><span>${label}</span></button>`).join('');
+    document.body.appendChild(zoomMenu);
+    const setZoomOpen = on => {
+        if (on) {
+            const r = zoomBtn.getBoundingClientRect();
+            zoomMenu.hidden = false;
+            const w = zoomMenu.offsetWidth;
+            zoomMenu.style.top = Math.round(r.bottom + 6) + 'px';
+            zoomMenu.style.left = Math.round(Math.max(8, Math.min(window.innerWidth - w - 8, r.left + r.width / 2 - w / 2))) + 'px';
+        } else {
+            zoomMenu.hidden = true;
+        }
+        zoomBtn.classList.toggle('on', on);
+        zoomBtn.setAttribute('aria-expanded', String(on));
+    };
+    zoomMenu.addEventListener('click', e => {
+        const b = e.target.closest('[data-z]');
+        if (!b) return;
+        let z = b.dataset.z;
+        const app = q('.note-split.active .excalidraw')?.__tuiApp;
+        // an empty drawing has nothing to fit (Excalidraw would zoom out to 10 %): 100 % instead
+        if (z === 'fit' && app && !app.scene.getNonDeletedElements().length) z = 'reset';
+        if (z === 'fit') {
+            const action = app && (app.actionManager.actions.zoomToFit || app.actionManager.actions.zoomToFitSelection);
+            if (action) app.actionManager.executeAction(action, 'ui');
+        } else {
+            const t = exq({ in: '.zoom-in-button', out: '.zoom-out-button', reset: '.reset-zoom-button' }[z]);
+            if (t && !t.disabled) t.click();
+        }
+        if (z === 'fit' || z === 'reset') setZoomOpen(false);
+        setTimeout(syncTools, 60);
+    });
+    document.addEventListener('pointerdown', e => {   // a tap elsewhere closes the menu (and still does its own job)
+        if (zoomMenu.hidden || !e.target || !e.target.closest) return;
+        if (!e.target.closest('#tui-zoom-menu, #tui-canvas-tools .tui-zoom')) setZoomOpen(false);
+    }, true);
+
+    // the padlock (keep the tool active after drawing) is on in every canvas note, and comes back on after Excalidraw
+    // resets it (opening a note, loading its content), unless it was opened by hand in that note
+    const canvasNoteId = () => location.hash.split('?')[0].split('/').pop() || '';
+    const unlockedByHand = new Set();
+
     tools.addEventListener('click', e => {
         const b = e.target.closest('button');
         if (!b) return;
         const act = b.dataset.act;
+        if (act === 'zoom') { setZoomOpen(zoomMenu.hidden); return; }
         if (act === 'penmode' || act === 'lock') {   // Excalidraw's own toggles, moved here from its tool bar
             const app = q('.note-split.active .excalidraw')?.__tuiApp;
             if (!app) return;
             if (act === 'penmode') app.setState(s => ({ penMode: !s.penMode, penDetected: true }));
-            else app.setState(s => ({ activeTool: { ...s.activeTool, locked: !s.activeTool.locked } }));
+            else {
+                const lockNow = !app.state.activeTool.locked;
+                if (lockNow) unlockedByHand.delete(canvasNoteId()); else unlockedByHand.add(canvasNoteId());
+                app.setState(s => ({ activeTool: { ...s.activeTool, locked: lockNow } }));
+            }
             setTimeout(syncTools, 60);
             return;
         }
@@ -139,6 +225,14 @@ if (typeof module !== 'undefined') module.exports = [];
             body.classList.remove('tui-focus');
             renderDraw();
         }
+        if (!q('.note-split.active.type-canvas') && !zoomMenu.hidden) setZoomOpen(false);
+        // Trilium's two buttons on the right have their names only in hover tooltips: give them accessible names, which
+        // the long press below shows
+        for (const [icon, name] of [['bx-dock-bottom', 'Note panel'], ['bx-dots-horizontal-rounded', 'Note menu']]) {
+            for (const b of document.querySelectorAll(`.title-row .icon-action.${icon}`)) {
+                if (!b.getAttribute('aria-label')) b.setAttribute('aria-label', name);
+            }
+        }
     };
 
     // ---------------------------------------------------------------- "Notes" launcher: green while the tree is open
@@ -177,7 +271,7 @@ if (typeof module !== 'undefined') module.exports = [];
     let panelState = '';
     const syncPanels = () => {
         const s = [menuOpen(), treeOpen(), newOpen(), !!q('.tn-dropdown-portal.right-dropdown-widget > .dropdown-menu.show'),
-            !!q('.tn-dropdown-portal.note-actions > .dropdown-menu.show'),
+            !!q('.tn-dropdown-portal.note-actions > .dropdown-menu.show'), !!q('.modal.mobile-note-panel.show'),
             body.classList.contains('tui-props-open') && !!q('.note-split.active .excalidraw .Island.App-menu__left'),
             body.classList.contains('tui-focus')].join();
         if (s !== panelState) { panelState = s; setTimeout(() => window.dispatchEvent(new Event('resize')), 50); }
@@ -283,14 +377,23 @@ if (typeof module !== 'undefined') module.exports = [];
                 if (el && el.__tuiApp !== this) el.__tuiApp = this;
                 // the pen-mode button from the start, so the tool bar does not grow at the first pen tap; pen mode
                 // itself still turns on at the first pen stroke (see below), as Excalidraw does
-                // the tool stays after drawing a shape (the padlock on), once per note: Excalidraw goes back to the
-                // pointer after each rectangle otherwise; opened by hand, it stays open in that note
-                const noteKey = location.hash.split('?')[0];
-                if (this.state && this.state.activeTool && !this.state.activeTool.locked && this.__tuiLockedFor !== noteKey &&
-                    body.classList.contains('mobile')) {
-                    this.__tuiLockedFor = noteKey;
+                // the tool stays after drawing a shape or a frame (the padlock on): Excalidraw goes back to the pointer
+                // otherwise. Keyed by the note's id, not its path (opening a note from a partial path rewrites the
+                // path while the canvas loads and resets the padlock); opened by hand, it stays open in that note.
+                // The image tool is left alone (locked, it would ask for another image after each one).
+                const lockWanted = app => {
+                    const tool = app.state && app.state.activeTool;
+                    const nid = canvasNoteId();
+                    return !!tool && !tool.locked && tool.type !== 'image' && !!nid && !unlockedByHand.has(nid) &&
+                        body.classList.contains('mobile');
+                };
+                if (lockWanted(this) && !this.__tuiLocking) {
+                    this.__tuiLocking = true;
                     const app = this;
-                    setTimeout(() => app.setState(s => ({ activeTool: { ...s.activeTool, locked: true } })), 0);
+                    setTimeout(() => {
+                        app.__tuiLocking = false;
+                        if (lockWanted(app)) app.setState(s => ({ activeTool: { ...s.activeTool, locked: true } }));
+                    }, 0);
                 }
                 if (this.state && !this.state.penDetected && !this.__tuiPenShown && body.classList.contains('mobile')) {
                     this.__tuiPenShown = true;
@@ -348,12 +451,12 @@ if (typeof module !== 'undefined') module.exports = [];
     const queueCollectionBar = () => {
         if (collQueued) return;
         collQueued = true;
-        requestAnimationFrame(() => { collQueued = false; syncCollectionBar(); syncStrokeRange(); syncCanvasLeft(); watchSidebar(); syncActiveRow(); syncPalettes(); syncPressureRange(); });
+        requestAnimationFrame(() => { collQueued = false; syncCollectionBar(); syncStrokeRange(); syncCanvasLeft(); watchSidebar(); syncActiveRow(); syncPalettes(); syncPressureRange(); syncOutline(); syncShapes(); });
     };
 
     new MutationObserver(() => { place(); syncNotes(); queueCollectionBar(); }).observe(document.body, { childList: true, subtree: true });
     window.addEventListener('resize', queueCollectionBar);
-    setInterval(() => { place(); syncNotes(); syncChrome(); syncTools(); syncPanels(); syncCollectionBar(); syncStrokeRange(); syncTreePick(); syncCanvasLeft(); watchSidebar(); syncActiveRow(); syncPalettes(); syncPressureRange(); }, 250);
+    setInterval(() => { place(); syncNotes(); syncChrome(); syncTools(); syncPanels(); syncCollectionBar(); syncStrokeRange(); syncTreePick(); syncCanvasLeft(); watchSidebar(); syncActiveRow(); syncPalettes(); syncPressureRange(); syncOutline(); syncShapes(); }, 250);
     place();
     syncNotes();
 
@@ -599,9 +702,25 @@ if (typeof module !== 'undefined') module.exports = [];
     newPanel.hidden = true;
     newPanel.setAttribute('role', 'dialog');
     newPanel.setAttribute('aria-label', 'New note');
-    newPanel.innerHTML = '<div class="tui-new-title">New note</div>' + NOTE_TYPES.map(([, , icon, title], i) =>
-        `<button type="button" class="tui-new-item" data-i="${i}"><span class="bx ${icon}"></span><span>${title}</span></button>`).join('');
+    // an optional title above the types; without one the note is named after its type and the time ("Canvas 07:42"),
+    // with the date too when it does not go into a day note, so the tree does not fill with notes called "New note"
+    newPanel.innerHTML = '<div class="tui-new-title">New note</div>' +
+        '<input type="text" class="tui-new-name" placeholder="Title (optional)" aria-label="Title of the new note" ' +
+        'autocomplete="off" enterkeyhint="done">' +
+        '<div class="tui-new-hint">Without a title: the type and the time, e.g. "Canvas 07:42"</div>' +
+        NOTE_TYPES.map(([, , icon, title], i) =>
+            `<button type="button" class="tui-new-item" data-i="${i}"><span class="bx ${icon}"></span><span>${title}</span></button>`).join('');
     document.body.appendChild(newPanel);
+    const newName = newPanel.querySelector('.tui-new-name');
+    newName.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); newName.blur(); } });   // then pick the type
+    const two = n => String(n).padStart(2, '0');
+    const autoTitle = (typeTitle, parent) => {
+        const d = new Date();
+        const time = `${two(d.getHours())}:${two(d.getMinutes())}`;
+        const label = typeTitle === 'Text' ? 'Note' : typeTitle;
+        const dayNote = parent && typeof parent.hasLabel === 'function' && parent.hasLabel('dateNote');
+        return dayNote ? `${label} ${time}` : `${label} ${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())} ${time}`;
+    };
     const newButton = () => q('#launcher-pane .launcher-button.bx-file-blank');
     const newOpen = () => !newPanel.hidden;
     const setNewOpen = on => {
@@ -631,15 +750,19 @@ if (typeof module !== 'undefined') module.exports = [];
     newPanel.addEventListener('click', async e => {
         const b = e.target.closest('.tui-new-item');
         if (!b) return;
-        const [type, mime] = NOTE_TYPES[Number(b.dataset.i)];
+        const [type, mime, , typeTitle] = NOTE_TYPES[Number(b.dataset.i)];
+        const typed = newName.value.trim();
+        newName.blur();
         setNewOpen(false);
         try {
             // where the stock launcher creates notes: the #inbox note, else today's day note (backend scripts are off
-            // by default, so this uses the frontend API); the new note opens with its title ready to type
+            // by default, so this uses the frontend API). The note has its title already, so nothing gets the focus
+            // (focus "none"): no keyboard pops up over a new canvas
             const parent = (await api.searchForNote('#inbox')) || (await api.getTodayNote());
-            const opts = { type, isProtected: !!parent.isProtected };
+            const opts = { type, isProtected: !!parent.isProtected, title: typed || autoTitle(typeTitle, parent), focus: 'none' };
             if (mime) opts.mime = mime;
             await api.createNote(parent.noteId, opts);
+            newName.value = '';
         } catch (err) {
             if (api.showError) api.showError('The note could not be created: ' + (err && err.message || err));
             else console.error(err);
@@ -648,7 +771,7 @@ if (typeof module !== 'undefined') module.exports = [];
 
     // ---------------------------------------------------------------- pen taps that end without a click
     // after writing with the pen, the WebView sometimes ends a pen tap (pointerdown and pointerup on the same button)
-    // without the click (seen on the tablet 2026-11-13: a tap on "New" needed a second try). When no click follows
+    // without the click (seen on the tablet: a tap on "New" needed a second try). When no click follows
     // within 120 ms (or the system cancels a short tap), the tap is completed here; a late native click on the same
     // element is then ignored, so nothing
     // runs twice. Only for buttons and the like, outside the drawing and text fields.
@@ -671,7 +794,7 @@ if (typeof module !== 'undefined') module.exports = [];
         el.click();
     };
     // the system can also take a pen tap away from the page (pointercancel a few tens of ms after the pen touched
-    // down, seen 2026-11-13): a short one on a button is a tap
+    // down): a short one on a button is a tap
     window.addEventListener('pointercancel', e => {
         if (!penTap || e.pointerId !== penTap.id) return;
         const tap = penTap;
@@ -700,6 +823,270 @@ if (typeof module !== 'undefined') module.exports = [];
             e.stopImmediatePropagation();
             completed = null;
         }
+    }, true);
+
+    // ---------------------------------------------------------------- long press: the name of an icon button
+    // Trilium's and Excalidraw's tooltips appear on mouse hover only, so on the tablet an icon's meaning stayed a
+    // guess. Holding a finger or the pen on an icon button for about half a second shows its name above it (below it
+    // in the top bar); that press does not press the button. Buttons whose own text already says what they do, and
+    // the labelled launchers of the rail and the bottom bar, are left alone.
+    const TIP_TARGET = 'button, label.ToolIcon, .icon-action, .ck-button, [role="button"], .dropdown-menu-button';
+    const tip = document.createElement('div');
+    tip.id = 'tui-tip';
+    tip.setAttribute('role', 'tooltip');
+    tip.hidden = true;
+    document.body.appendChild(tip);
+    const tipName = el => {
+        if (el.matches(SHAPE_BTN)) return 'Shapes';   // rectangle, diamond and ellipse share that button (below)
+        let n = el.getAttribute('aria-label') || el.getAttribute('title') || el.getAttribute('data-bs-original-title') ||
+            el.getAttribute('data-cke-tooltip-text') || '';
+        if (!n) {
+            const by = el.getAttribute('aria-labelledby');
+            const lab = (by && document.getElementById(by)) || el.querySelector('.ck-button__label');
+            if (lab) n = lab.textContent;
+        }
+        if (!n) {   // an Excalidraw tool: the radio input inside the label carries the name
+            const input = el.querySelector('input[aria-label], input[title]');
+            if (input) n = input.getAttribute('aria-label') || input.getAttribute('title');
+        }
+        return String(n || '').split(' — ')[0].trim();   // Excalidraw's titles end with " — <shortcut key>"
+    };
+    let tipTimer = null, tipStart = null, swallowPress = null, tipHideTimer = null;
+    const hideTip = () => { tip.hidden = true; };
+    const showTip = (el, name) => {
+        clearTimeout(tipHideTimer);
+        tip.textContent = name;
+        tip.hidden = false;
+        const r = el.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
+        let top = r.top - h - 10;
+        if (top < 60) top = r.bottom + 10;   // the top bar: below the button
+        tip.style.top = Math.round(top) + 'px';
+        tip.style.left = Math.round(Math.min(window.innerWidth - w - 8, Math.max(8, r.left + r.width / 2 - w / 2))) + 'px';
+    };
+    window.addEventListener('pointerdown', e => {
+        clearTimeout(tipTimer);
+        tipTimer = null;
+        hideTip();
+        swallowPress = null;
+        const t = e.target;
+        if (!t || !t.closest || t.closest('#launcher-pane, canvas, input:not([type=radio]), textarea, [contenteditable="true"]')) return;
+        const el = t.closest(TIP_TARGET);
+        if (!el) return;
+        const name = tipName(el);
+        const text = (el.innerText || '').trim();
+        if (!name || (text && (text.length > 6 || text === name))) return;
+        tipStart = { x: e.clientX, y: e.clientY, id: e.pointerId };
+        tipTimer = setTimeout(() => {
+            tipTimer = null;
+            showTip(el, name);
+            swallowPress = { el, until: 0 };
+            penTap = null;   // nor is it completed as a pen tap
+        }, 450);
+    }, true);
+    window.addEventListener('pointermove', e => {
+        if (!tipTimer || !tipStart || e.pointerId !== tipStart.id) return;
+        if (Math.hypot(e.clientX - tipStart.x, e.clientY - tipStart.y) > 10) { clearTimeout(tipTimer); tipTimer = null; }
+    }, true);
+    const endPress = () => {
+        if (tipTimer) { clearTimeout(tipTimer); tipTimer = null; }
+        if (!tip.hidden) {
+            if (swallowPress) swallowPress.until = Date.now() + 700;
+            clearTimeout(tipHideTimer);
+            tipHideTimer = setTimeout(hideTip, 1500);
+        }
+    };
+    window.addEventListener('pointerup', endPress, true);
+    window.addEventListener('pointercancel', endPress, true);
+    window.addEventListener('click', e => {
+        if (!swallowPress) return;
+        if (swallowPress.until && Date.now() > swallowPress.until) { swallowPress = null; return; }
+        if (swallowPress.el.contains(e.target)) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+        }
+    }, true);
+    window.addEventListener('contextmenu', e => { if (!tip.hidden || tipTimer) e.preventDefault(); }, true);
+
+    // ---------------------------------------------------------------- the pen's side button erases
+    // Excalidraw erases with the pen's eraser end (pointer button 5) while it touches, and goes back to the previous
+    // tool when the pen lifts. The side (barrel) button arrives as button 2, which Excalidraw ignores: on the canvas it
+    // becomes button 5, so holding the side button while drawing erases. The context menu a held side button can
+    // open is not shown.
+    let barrelPointer = null, barrelUntil = 0;
+    const asEraser = e => {
+        try {
+            Object.defineProperty(e, 'button', { value: e.type === 'pointermove' ? -1 : 5, configurable: true });
+            Object.defineProperty(e, 'buttons', { value: e.type === 'pointerup' ? 0 : 32, configurable: true });
+        } catch (err) { /* leave it */ }
+    };
+    window.addEventListener('pointerdown', e => {
+        if (e.pointerType !== 'pen' || !(e.button === 2 || (e.buttons & 2))) return;
+        if (!e.target || !e.target.closest || !e.target.closest('canvas.excalidraw__canvas.interactive')) return;
+        barrelPointer = e.pointerId;
+        asEraser(e);
+    }, true);
+    window.addEventListener('pointermove', e => { if (barrelPointer !== null && e.pointerId === barrelPointer) asEraser(e); }, true);
+    for (const type of ['pointerup', 'pointercancel']) {
+        window.addEventListener(type, e => {
+            if (barrelPointer === null || e.pointerId !== barrelPointer) return;
+            asEraser(e);
+            barrelPointer = null;
+            barrelUntil = Date.now() + 600;
+        }, true);
+    }
+    window.addEventListener('contextmenu', e => {
+        if (barrelPointer === null && Date.now() > barrelUntil) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+    }, true);
+
+    // ---------------------------------------------------------------- "Note panel": a docked right panel
+    // Trilium's note panel (outline, attributes, connections) opens as a dialog over the note. In landscape
+    // tablet_ui.css docks it on the right like the "…" menu, with no backdrop, and the note area shrinks. Here: its
+    // button opens and closes it, it and the other right panels ("…", the canvas tool options) take turns, and the
+    // dialog's focus trap lets the note keep the focus while it is docked (so the text stays editable).
+    const notePanel = () => q('.modal.mobile-note-panel.show');
+    const wide = () => window.innerWidth >= 992;
+    const closeNotePanel = () => notePanel()?.querySelector('.btn-close')?.click();
+    document.addEventListener('click', e => {
+        const t = e.target;
+        if (!t || !t.closest || !wide()) return;
+        if (t.closest('.title-row .mobile-note-panel-button')) {
+            if (notePanel()) {   // open: the button closes it
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                closeNotePanel();
+                return;
+            }
+            if (body.classList.contains('tui-props-open')) { body.classList.remove('tui-props-open'); syncTools(); }
+            return;
+        }
+        if (notePanel() && t.closest('.title-row .icon-action.bx-dots-horizontal-rounded, #tui-canvas-tools [data-act="props"]')) {
+            closeNotePanel();
+        }
+    }, true);
+    document.documentElement.addEventListener('focusin', e => {
+        const p = notePanel();
+        if (!p || !wide() || p.contains(e.target)) return;
+        e.stopPropagation();   // Bootstrap's focus trap listens on the document
+    });
+
+    // ---------------------------------------------------------------- outline of text notes (landscape)
+    // A text note with three headings or more lists them in the free space right of the reading column; a tap
+    // scrolls to that heading, and the heading in view is marked. Shown only where it fits (no side panel in the way).
+    const outlineBox = document.createElement('nav');
+    outlineBox.id = 'tui-outline';
+    outlineBox.hidden = true;
+    outlineBox.setAttribute('aria-label', 'Outline');
+    document.body.appendChild(outlineBox);
+    let outlineSig = '', outlineHeads = [];
+    const hideOutline = () => { if (!outlineBox.hidden) outlineBox.hidden = true; };
+    const syncOutline = () => {
+        const split = q('.note-split.active.type-text');
+        const content = split && [...split.querySelectorAll('.note-detail-editable-text-editor, .note-detail-readonly-text-content')]
+            .find(c => c.getClientRects().length > 0);
+        if (!content || !wide() || body.classList.contains('tui-focus')) return hideOutline();
+        const heads = [...content.querySelectorAll('h2, h3, h4')].filter(h => h.textContent.trim());
+        if (heads.length < 3) return hideOutline();
+        const sr = split.getBoundingClientRect(), cr = content.getBoundingClientRect();
+        const room = sr.right - cr.right - 40;
+        if (room < 190) return hideOutline();
+        const sig = heads.map(h => h.tagName + ':' + h.textContent.trim()).join('|');
+        outlineHeads = heads;
+        if (sig !== outlineSig) {
+            outlineSig = sig;
+            outlineBox.innerHTML = '<div class="tui-outline-title">Outline</div>' +
+                heads.map((h, i) => `<button type="button" class="tui-outline-item lvl-${h.tagName[1]}" data-i="${i}"></button>`).join('');
+            outlineBox.querySelectorAll('.tui-outline-item').forEach((b, i) => { b.textContent = heads[i].textContent.trim(); });
+        }
+        const row = split.querySelector(':scope > .title-row');
+        const top = Math.round((row ? row.getBoundingClientRect().bottom : sr.top) + 24);
+        outlineBox.style.top = top + 'px';
+        outlineBox.style.left = Math.round(cr.right + 32) + 'px';
+        outlineBox.style.width = Math.round(Math.min(260, room)) + 'px';
+        outlineBox.style.maxHeight = (window.innerHeight - top - 16) + 'px';
+        outlineBox.hidden = false;
+        let active = 0;   // the last heading above the upper quarter of the note area
+        const line = top + (sr.bottom - top) / 4;
+        heads.forEach((h, i) => { if (h.getBoundingClientRect().top <= line) active = i; });
+        outlineBox.querySelectorAll('.tui-outline-item').forEach((b, i) => b.classList.toggle('active', i === active));
+    };
+    outlineBox.addEventListener('click', e => {
+        const b = e.target.closest('.tui-outline-item');
+        const h = b && outlineHeads[Number(b.dataset.i)];
+        if (h) h.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    let outlineQueued = false;
+    const queueOutline = () => {
+        if (outlineQueued) return;
+        outlineQueued = true;
+        requestAnimationFrame(() => { outlineQueued = false; syncOutline(); });
+    };
+    document.addEventListener('scroll', queueOutline, true);
+    window.addEventListener('resize', queueOutline);
+
+    // ---------------------------------------------------------------- Shapes: one button for rectangle, diamond, ellipse
+    // The three shape tools share one button of the tool bar: Excalidraw's rectangle button, which shows the last
+    // shape used (tablet_ui.css hides the other two and draws the icon). A tap picks that shape; a tap while a shape
+    // is active opens a small bar with the three above the button. The last shape is kept on this device.
+    const SHAPES = ['rectangle', 'diamond', 'ellipse'];
+    const SHAPE_KEY = 'tui-shape-v1';
+    const SHAPE_BTN = '.excalidraw .App-toolbar label:has(input[data-testid="toolbar-rectangle"])';
+    let lastShape = 'rectangle';
+    try { const v = localStorage.getItem(SHAPE_KEY); if (SHAPES.includes(v)) lastShape = v; } catch (e) { /* default */ }
+    const shapeBar = document.createElement('div');
+    shapeBar.id = 'tui-shape-bar';
+    shapeBar.hidden = true;
+    shapeBar.setAttribute('role', 'menu');
+    shapeBar.innerHTML = SHAPES.map(s =>
+        `<button type="button" role="menuitem" data-shape="${s}" aria-label="${s[0].toUpperCase() + s.slice(1)}"></button>`).join('');
+    document.body.appendChild(shapeBar);
+    const shapeButton = () => [...document.querySelectorAll('.note-split.active ' + SHAPE_BTN)].find(b => b.getBoundingClientRect().width > 0);
+    const setShapeBar = on => {
+        const btn = on && shapeButton();
+        if (!btn) { shapeBar.hidden = true; return; }
+        shapeBar.hidden = false;
+        const r = btn.getBoundingClientRect(), w = shapeBar.offsetWidth, h = shapeBar.offsetHeight;
+        shapeBar.style.left = Math.round(Math.min(window.innerWidth - w - 8, Math.max(8, r.left + r.width / 2 - w / 2))) + 'px';
+        shapeBar.style.top = Math.round(r.top - h - 14) + 'px';
+    };
+    const syncShapes = () => {
+        const app = canvasApp();
+        const type = app && app.state.activeTool && app.state.activeTool.type;
+        if (SHAPES.includes(type) && type !== lastShape) {
+            lastShape = type;
+            try { localStorage.setItem(SHAPE_KEY, lastShape); } catch (e) { /* kept for this session */ }
+        }
+        for (const s of SHAPES) {
+            if (body.classList.contains('tui-shape-' + s) !== (s === lastShape)) body.classList.toggle('tui-shape-' + s, s === lastShape);
+        }
+        if (body.classList.contains('tui-shape-on') !== SHAPES.includes(type)) body.classList.toggle('tui-shape-on', SHAPES.includes(type));
+        for (const b of shapeBar.querySelectorAll('[data-shape]')) b.classList.toggle('on', b.dataset.shape === type);
+        if (!shapeBar.hidden && !q('.note-split.active.type-canvas')) setShapeBar(false);
+    };
+    window.addEventListener('click', e => {
+        const t = e.target;
+        const btn = t && t.closest && t.closest(SHAPE_BTN);
+        if (!btn) return;
+        e.preventDefault();   // not Excalidraw's own rectangle choice
+        e.stopImmediatePropagation();
+        const app = canvasApp();
+        if (!app) return;
+        if (SHAPES.includes(app.state.activeTool.type)) setShapeBar(shapeBar.hidden);
+        else { app.setActiveTool({ type: lastShape }); setShapeBar(false); }
+        setTimeout(syncShapes, 30);
+    }, true);
+    shapeBar.addEventListener('click', e => {
+        const b = e.target.closest('[data-shape]');
+        const app = canvasApp();
+        if (!b || !app) return;
+        app.setActiveTool({ type: b.dataset.shape });
+        setShapeBar(false);
+        setTimeout(syncShapes, 30);
+    });
+    document.addEventListener('pointerdown', e => {   // a tap elsewhere closes the bar (and still does its own job)
+        if (shapeBar.hidden || !e.target || !e.target.closest) return;
+        if (!e.target.closest('#tui-shape-bar') && !e.target.closest(SHAPE_BTN)) setShapeBar(false);
     }, true);
 
     // ---------------------------------------------------------------- the drawing stays put when a left panel opens
