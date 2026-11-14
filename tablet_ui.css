@@ -1681,3 +1681,12 @@ body.mobile #tui-quick-colours .tui-quick-width.active { background: var(--tui-a
 body.mobile #tui-quick-colours.tui-compact { gap: 6px; }
 body.mobile #tui-quick-colours.tui-compact .tui-quick-swatch { width: 28px; height: 28px; }
 body.mobile #tui-quick-colours.tui-compact .tui-quick-width { width: 30px; }
+
+/* "More tools": its button is green while its menu is open, like the other buttons with an open menu (the active
+   tool keeps its own green until a tool is chosen in the menu) */
+@media (min-width: 700px) {
+  body.mobile .excalidraw .App-toolbar:has(.App-toolbar__extra-tools-dropdown) .App-toolbar__extra-tools-trigger {
+    background: var(--tui-active-bg) !important;
+    color: var(--tui-accent) !important;
+  }
+}

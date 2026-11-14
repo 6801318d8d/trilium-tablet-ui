@@ -56,9 +56,11 @@ or more, so phones and the desktop layout are unchanged.
 - **Touch details:** a long press on an icon button shows its name (hover tooltips never appear on a touch screen);
   the note panel button has an info icon; a top-bar button works at the first tap also while a side panel is open
   (the panel closing used to move the buttons under the finger); the docked dialogs open without the backdrop's
-  flash; no grey "hover" left on the last button touched; pen taps that the WebView ends without a click are completed.
+  flash; every button whose menu or panel is open is green, "More tools" included; no grey "hover" left on the last button touched; pen taps that the WebView ends without a click are completed.
 - **Light on the page:** nothing is measured or rewritten while a pen or finger is down on a drawing, and attributes
   are written only when their value changes.
+- **Sync within seconds:** a few seconds after an edit the app asks for a sync at once (it syncs once a minute
+  otherwise), so the server, and the web pages open on it, show the change almost at once.
 
 ## Install
 

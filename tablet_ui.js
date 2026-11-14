@@ -35,6 +35,8 @@
    - "Note panel" (outline, attributes, connections): an info icon, and in landscape a docked right panel, like "…".
    - "New": an optional title; without one the note is named after its type and the time.
    - Text notes in landscape: the outline of the headings in the free space right of the reading column.
+   - A few seconds after an edit the app syncs at once (it syncs once a minute otherwise), so the server and the web
+     pages open on it show the change within seconds.
    Turn it off: rename the label to #disabled:widget and restart the app. */
 // a #widget note must hand Trilium its widgets: none here (the code below only adds behaviour)
 if (typeof module !== 'undefined') module.exports = [];
@@ -1004,6 +1006,37 @@ if (typeof module !== 'undefined') module.exports = [];
     window.addEventListener('keyup', e => {
         if (PEN_KEYS.has(e.key) && canvasApp() && q('.note-split.active.type-canvas')) { e.preventDefault(); e.stopImmediatePropagation(); }
     }, true);
+
+    // ---------------------------------------------------------------- edits reach the server within seconds
+    // The app syncs with its server once a minute, so a change made here reached the server, and the web pages open on
+    // it (which redraw the note by themselves), up to a minute later. A few seconds after the last edit (a pen or a
+    // finger lifted from the note, a key released in it) the widget asks for a sync at once, as the "Sync now" button
+    // does (POST api/sync/now): at most one every 5 s. Where no sync server is configured (the server's own web pages)
+    // the answer is NOT_CONFIGURED and the widget stops asking.
+    let syncTimer = null, lastSyncAt = 0, syncUnavailable = false;
+    const syncSoon = delay => {
+        if (syncUnavailable) return;
+        clearTimeout(syncTimer);
+        syncTimer = setTimeout(async () => {
+            const wait = lastSyncAt + 5000 - Date.now();
+            if (wait > 0) { syncSoon(wait); return; }
+            lastSyncAt = Date.now();
+            try {
+                const res = await fetch('api/sync/now', {
+                    method: 'POST', body: '{}',
+                    headers: { 'Content-Type': 'application/json', 'x-csrf-token': (window.glob && glob.csrfToken) || '' }
+                });
+                const answer = await res.json().catch(() => ({}));
+                if (answer && answer.errorCode === 'NOT_CONFIGURED') syncUnavailable = true;
+            } catch (err) { /* the regular sync catches up */ }
+        }, delay);
+    };
+    const afterEdit = e => {
+        const t = e.target;
+        if (t && t.closest && t.closest('.note-split.active .note-detail, .note-split.active .title-row input.note-title')) syncSoon(3000);
+    };
+    window.addEventListener('pointerup', afterEdit, true);
+    window.addEventListener('keyup', afterEdit, true);
 
     // ---------------------------------------------------------------- "Note panel": a docked right panel
     // Trilium's note panel (outline, attributes, connections) opens as a dialog over the note. In landscape
