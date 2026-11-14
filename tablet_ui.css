@@ -289,6 +289,32 @@ body.mobile .note-split .title-actions:not(:has(> :not(.edited-notes))) { displa
   body.mobile .excalidraw .App-toolbar .ToolIcon__penMode .ToolIcon__icon::before { content: "\ebb0"; }
   body.mobile .excalidraw .App-toolbar .App-toolbar__extra-tools-trigger::before { content: "\ea39"; }
 
+  /* "More tools" (Frame tool, Web Embed, Laser pointer, Mermaid to Excalidraw): Excalidraw opens its menu below the
+     button (top: 100%), which with the bar docked to the bottom edge put the whole menu off-screen; open it above
+     the bar, aligned to its right end, with touch-sized rows. While one of its tools is active the button is
+     highlighted like the other tools (Excalidraw's own icon swap is hidden with the other SVGs). */
+  body.mobile .excalidraw .App-toolbar .App-toolbar__extra-tools-dropdown {
+    top: auto !important;
+    bottom: calc(100% + 8px) !important;
+    left: auto !important;
+    right: 0 !important;
+    margin-top: 0 !important;
+  }
+  body.mobile .excalidraw .App-toolbar__extra-tools-dropdown .dropdown-menu-item { min-height: 44px; font-size: 15px; }
+  /* the "Generate" group title: a div without a class and a -8 px margin, flush with the menu's edge */
+  body.mobile .excalidraw .App-toolbar__extra-tools-dropdown .dropdown-menu-container > div:not([class]) {
+    margin-inline: 0 !important;
+    padding-inline: 10px;
+  }
+  body.mobile .excalidraw .App-toolbar .App-toolbar__extra-tools-trigger--selected {
+    background: var(--tui-active-bg) !important;
+    color: var(--tui-accent) !important;
+  }
+  /* same spacing as the other tools: no divider before "More tools" (1 px + 2 x 4 px margins + one more grid gap)
+     and no left padding inside it, which pushed its icon off centre */
+  body.mobile .excalidraw .App-toolbar .App-toolbar__divider { display: none !important; }
+  body.mobile .excalidraw .App-toolbar .App-toolbar__extra-tools-trigger { padding: 0 !important; }
+
   /* stroke / background / width / opacity: a compact box above the tool bar, not a panel on the right */
   body.mobile .excalidraw .Island.App-menu__left {
     position: absolute !important;
