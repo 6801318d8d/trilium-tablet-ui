@@ -739,6 +739,9 @@ body.mobile.tui-focus:has(.note-split.active.type-canvas) #detail-container { wi
   }
   body.mobile .mobile-note-navigator .mobile-navigator-current-tile:active { background: var(--hover-item-background-color, rgba(0, 0, 0, .06)) !important; }
   body.mobile .mobile-note-navigator .mobile-navigator-current-header { gap: 10px; }
+  /* no "…" in the header: next to the note's own "…" it read as the same menu. A long press on the header (Trilium's
+     own) opens the same menu of the folder, docked like the rows' menu */
+  body.mobile .mobile-note-navigator .mobile-navigator-current-action:has(> .bx-dots-horizontal-rounded) { display: none !important; }
   body.mobile .mobile-note-navigator .mobile-navigator-current-icon { font-size: 22px !important; }
   body.mobile .mobile-note-navigator .mobile-navigator-current-title { font: 600 17px/1.3 var(--main-font-family, system-ui, sans-serif) !important; }
 
@@ -1531,8 +1534,10 @@ body.mobile #tui-quick-colours .tui-quick-swatch.active {
   body.mobile:has(.modal.recent-changes-dialog.show) #mobile-sidebar-wrapper { display: none !important; }
   body.mobile:has(.modal.recent-changes-dialog.show) #mobile-rest-container { margin-inline-start: var(--tui-panel-width); }
   body.mobile:has(.modal.recent-changes-dialog.show) #launcher-pane .launcher-button.bx-history,
-  body.mobile:has(.modal.recent-changes-dialog.show) #launcher-pane .launcher-button.bx-history:focus { background: var(--tui-active-bg) !important; color: var(--tui-accent); }
-  body.mobile:has(.modal.recent-changes-dialog.show) #launcher-pane .launcher-button.bx-history::after { color: var(--tui-accent); font-weight: 600; }
+  body.mobile:has(.modal.recent-changes-dialog.show) #launcher-pane .launcher-button.bx-history:focus,
+  body.mobile #launcher-pane .launcher-button.bx-history.on { background: var(--tui-active-bg) !important; color: var(--tui-accent); }
+  body.mobile:has(.modal.recent-changes-dialog.show) #launcher-pane .launcher-button.bx-history::after,
+  body.mobile #launcher-pane .launcher-button.bx-history.on::after { color: var(--tui-accent); font-weight: 600; }
   body.mobile:has(.modal.recent-changes-dialog.show) #launcher-pane .launcher-button.bx-sitemap.on { background: transparent !important; color: inherit !important; }
   body.mobile:has(.modal.recent-changes-dialog.show) #launcher-pane .launcher-button.bx-sitemap.on::after { color: var(--launcher-pane-text-color, currentColor) !important; font-weight: 500 !important; }
 }
@@ -1689,4 +1694,50 @@ body.mobile #tui-quick-colours.tui-compact .tui-quick-width { width: 30px; }
     background: var(--tui-active-bg) !important;
     color: var(--tui-accent) !important;
   }
+}
+
+/* ------------------------------------------------------------------------------------------------------------
+   The note tree's menu (Trilium's note context menu, opened by a long press in the tree): in landscape the left panel
+   in place of the tree, full height and scrollable, titled with the note's name (tablet_ui.js marks it:
+   body.tui-tree-ctx)
+   ------------------------------------------------------------------------------------------------------------ */
+@media (min-width: 992px) {
+  body.mobile.tui-tree-ctx .tn-popup.tn-menu.dropdown-menu-sm.show {
+    position: fixed !important;
+    inset: var(--tui-safe-top, 0px) auto 0 84px !important;
+    transform: none !important;
+    width: var(--tui-panel-width) !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 12px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    border: 0 !important;
+    border-inline-end: 1px solid var(--main-border-color) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: var(--left-pane-background-color, var(--main-background-color)) !important;
+    z-index: 1045 !important;
+  }
+  body.mobile.tui-tree-ctx .tn-popup.tn-menu.dropdown-menu-sm.show::before {
+    content: var(--tui-ctx-title, "");
+    display: block;
+    padding: 6px 8px 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font: 600 16px/1.3 var(--main-font-family, system-ui, sans-serif);
+    color: var(--main-text-color);
+  }
+}
+@media (min-width: 992px) {
+  /* the note colours wrap onto a second line instead of scrolling sideways out of the panel */
+  body.mobile.tui-tree-ctx .tn-popup.tn-menu.show .dropdown-custom-item { overflow: visible !important; }
+  body.mobile.tui-tree-ctx .tn-popup.tn-menu.show .note-color-picker { flex-wrap: wrap !important; row-gap: 10px; }
+  /* no hover tooltip left over the panel by the touch that opened it */
+  body.mobile.tui-tree-ctx .tooltip { display: none !important; }
+}
+@media (min-width: 992px) {
+  body.mobile.tui-tree-ctx .tn-popup.tn-menu.show .note-color-picker { justify-content: flex-start !important; column-gap: 10px !important; }
 }

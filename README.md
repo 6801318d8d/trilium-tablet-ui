@@ -12,20 +12,24 @@ or more, so phones and the desktop layout are unchanged.
 | ![](screenshots/menu.png) | ![](screenshots/new_note.png) |
 | **Calendar collection: one top bar** | **Portrait** |
 | ![](screenshots/collection.png) | ![](screenshots/portrait.png) |
+| **A note's menu from the tree (long press)** | |
+| ![](screenshots/tree_menu.png) | |
 
 ## What it changes
 
 - **Landscape: a navigation rail** on the left with a label under each launcher; Sync at the bottom.
-- **Docked side panels.** On the left: Menu, the note tree, Recent changes, Bookmarks, the note types of "New" or the
-  quick search, one at a time. On the right: the note's "…" menu, the note panel (outline, attributes, connections) or
-  the canvas tool options. The note area shrinks instead of being covered, and the panels start below the system
-  status bar.
+- **Docked side panels.** On the left: Menu, the note tree, the menu of a note in the tree, Recent changes, Bookmarks,
+  the note types of "New" or the quick search, one at a time. On the right: the note's "…" menu, the note panel
+  (outline, attributes, connections) or the canvas tool options. The note area shrinks instead of being covered, and
+  the panels start below the system status bar.
 - **Menu and the note's "…" menu:** one column of equal rows, in groups like a settings list.
 - **Recent changes:** one row per note (title, path, time on the right; the whole row opens the note), the day on top
   while scrolling, deleted notes dimmed with a small "undelete" button. **Quick search results** and **Bookmarks** use
   the same rows: title, path under it (and a two-line extract for search results, none for raw JSON).
 - **Note tree:** the top bar names the folder you are in ("‹" goes up a level); the open note is highlighted; the tree
-  closes when a note is chosen in it or the open note is tapped.
+  closes when a note is chosen in it or the open note is tapped. A long press on a note, or on the folder's name,
+  opens its menu (Move, Clone, Duplicate, Archive, colour…), which takes the tree's place, titled with the note's name.
+  The folder's own "…" is gone, so the only "…" on screen is the open note's.
 - **New** asks for the note type first, with an optional title; without one the note is named after its type and the
   time ("Canvas 07:42"), so the tree does not fill up with notes called "New note". **Search** opens the quick search
   in the left panel, with results as you type, instead of replacing the open note with a search note.
@@ -55,8 +59,10 @@ or more, so phones and the desktop layout are unchanged.
     data URL built from it did not decode).
 - **Touch details:** a long press on an icon button shows its name (hover tooltips never appear on a touch screen);
   the note panel button has an info icon; a top-bar button works at the first tap also while a side panel is open
-  (the panel closing used to move the buttons under the finger); the docked dialogs open without the backdrop's
-  flash; every button whose menu or panel is open is green, "More tools" included; no grey "hover" left on the last button touched; pen taps that the WebView ends without a click are completed.
+  (the panel closing used to move the buttons under the finger); a rail button opens its panel at the first tap also
+  while Menu or another left panel is open, and only the button of the open panel stays green; the docked dialogs
+  open without the backdrop's flash; every button whose menu or panel is open is green, "More tools" included; no grey
+  "hover" left on the last button touched; pen taps that the WebView ends without a click are completed.
 - **Light on the page:** nothing is measured or rewritten while a pen or finger is down on a drawing, and attributes
   are written only when their value changes.
 - **Sync within seconds:** a few seconds after an edit the app asks for a sync at once (it syncs once a minute

@@ -783,6 +783,7 @@ if (typeof module !== 'undefined') module.exports = [];
             if (!newOpen()) {
                 if (menuOpen()) q('#launcher-pane .global-menu-button')?.click();
                 closeTree();
+                closeRecent();   // this listener stops the click before the one of "Recent" that closes it
             }
             setNewOpen(!newOpen());
             return;
@@ -1038,6 +1039,24 @@ if (typeof module !== 'undefined') module.exports = [];
     window.addEventListener('pointerup', afterEdit, true);
     window.addEventListener('keyup', afterEdit, true);
 
+    // ---------------------------------------------------------------- the tree's note menu: a docked left panel
+    // A long press on a row or on the folder's header (whose "…" tablet_ui.css hides) opens Trilium's note context
+    // menu as a floating box over the rail and the tree, taller than the screen. In landscape it becomes the left panel
+    // in place of the tree (tablet_ui.css), titled with the note's name. A touch in the tree marks the menu that follows
+    // (body.tui-tree-ctx), so it docks from its first frame and other context menus keep their own place.
+    document.addEventListener('pointerdown', e => {
+        const t = e.target;
+        if (!t || !t.closest) return;
+        if (t.closest('#mobile-sidebar-wrapper .mobile-note-navigator')) {
+            const row = t.closest('.mobile-navigator-row');
+            const title = row ? row.textContent.trim() : (q('#mobile-sidebar-wrapper .mobile-navigator-current-title')?.textContent.trim() || '');
+            setStyleVar(body, '--tui-ctx-title', JSON.stringify(title));   // a CSS string for the panel's title
+            if (!body.classList.contains('tui-tree-ctx')) body.classList.add('tui-tree-ctx');
+        } else if (!t.closest('.tn-popup.tn-menu') && body.classList.contains('tui-tree-ctx')) {
+            body.classList.remove('tui-tree-ctx');
+        }
+    }, true);
+
     // ---------------------------------------------------------------- "Note panel": a docked right panel
     // Trilium's note panel (outline, attributes, connections) opens as a dialog over the note. In landscape
     // tablet_ui.css docks it on the right like the "…" menu, with no backdrop, and the note area shrinks. Here: its
@@ -1075,6 +1094,15 @@ if (typeof module !== 'undefined') module.exports = [];
     // Bookmarks). A note opened from it closes it, as in the tree.
     const recentPanel = () => q('.modal.recent-changes-dialog.show');
     const closeRecent = () => recentPanel()?.querySelector('.btn-close')?.click();
+    // its button is green while it is open through .on, which the rail's hover reset leaves alone (the button tapped
+    // keeps :hover on a touch screen, and the reset beat the :has() rule of tablet_ui.css)
+    const syncRecentOn = () => {
+        const b = q('#launcher-pane .launcher-button.bx-history');
+        const on = !!recentPanel();
+        if (b && b.classList.contains('on') !== on) b.classList.toggle('on', on);
+    };
+    for (const type of ['shown.bs.modal', 'hidden.bs.modal']) document.addEventListener(type, syncRecentOn);
+    setInterval(syncRecentOn, 300);
     document.addEventListener('click', e => {
         const t = e.target;
         if (!t || !t.closest || !wide() || !recentPanel()) return;
@@ -1141,6 +1169,32 @@ if (typeof module !== 'undefined') module.exports = [];
         earlyTapUntil = 0;
         e.preventDefault();
         e.stopImmediatePropagation();
+    }, true);
+
+    // The same cover over the rail: with Menu (or "…") open, a touch on a rail button only closed the menu, and the
+    // button needed a second tap (Notes after Menu). The button under the cover is pressed once the cover has closed
+    // the menu; Notes is not pressed when the tree was already open behind Menu (closing Menu shows it again).
+    window.addEventListener('pointerdown', e => {
+        const t = e.target;
+        if (!t || !t.closest || !t.closest('.global-menu-cover')) return;
+        const under = document.elementsFromPoint(e.clientX, e.clientY).find(el => !el.closest('.global-menu-cover'));
+        const b = under && under.closest('#launcher-pane .launcher-button, #launcher-pane .global-menu-button');
+        if (!b || (b.matches('.global-menu-button') && menuOpen())) return;   // Menu itself: the cover closes it
+        penTap = null;
+        earlyTapUntil = Date.now() + 1200;
+        // the cover goes at once, the menu only when the finger lifts: wait for it to be closed (at most ~0.6 s).
+        // The first click after the menu closed this way is often ignored (the launcher does nothing): when no left
+        // panel has changed 350 ms later, the button is pressed once more.
+        const leftState = () => [menuOpen(), treeOpen(), body.classList.contains('tui-search-open'), newOpen(),
+            !!q('.modal.recent-changes-dialog.show'), !!q('.tn-dropdown-portal.right-dropdown-widget > .dropdown-menu.show')].join();
+        const press = tries => {
+            if (q('.tn-dropdown-portal > .dropdown-menu.show') && tries < 15) { setTimeout(() => press(tries + 1), 40); return; }
+            if (b.matches('.bx-sitemap') && treeOpen()) { syncNotes(); return; }
+            const before = leftState();
+            b.click();
+            setTimeout(() => { if (leftState() === before && b.isConnected) b.click(); }, 350);
+        };
+        setTimeout(() => press(0), 40);
     }, true);
 
     // ---------------------------------------------------------------- outline of text notes (landscape)
@@ -1495,6 +1549,16 @@ if (typeof module !== 'undefined') module.exports = [];
         if (!treeOpen()) q('.note-split.active .toggle-sidebar-button button')?.click();
         body.classList.add('tui-search-open');
         setTimeout(() => quickSearchEditor()?.focus(), 150);
+    }, true);
+    // another left panel from the rail (Recent, Bookmarks, Menu, New) closes the search: it hid the search panel but
+    // left Search green
+    document.addEventListener('pointerdown', e => {
+        const t = e.target;
+        if (!body.classList.contains('tui-search-open') || !t || !t.closest) return;
+        const b = t.closest('#launcher-pane .launcher-button, #launcher-pane .global-menu-button');
+        if (!b || b.matches('.bx-search, .bx-sitemap')) return;   // Search itself, or Notes (from the search to the tree)
+        body.classList.remove('tui-search-open');
+        closeTree();
     }, true);
     let searchTimer = null;
     const onSearchTyping = e => {
