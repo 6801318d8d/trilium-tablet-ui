@@ -189,6 +189,7 @@ if (typeof module !== 'undefined') module.exports = [];
     const setAttr = (el, name, value) => { if (el.getAttribute(name) !== value) el.setAttribute(name, value); };
     const setDisabled = (el, value) => { if (el.disabled !== value) el.disabled = value; };
     const setStyleVar = (el, name, value) => { if (el.style.getPropertyValue(name) !== value) el.style.setProperty(name, value); };
+    const setPos = (el, props) => { for (const [k, v] of Object.entries(props)) if (el.style[k] !== v) el.style[k] = v; };
     // mirror Excalidraw's state: zoom value, undo/redo available
     const syncTools = () => {
         const reset = exq('.reset-zoom-button');
@@ -489,12 +490,12 @@ if (typeof module !== 'undefined') module.exports = [];
         if (drawingNow()) return;
         if (collQueued) return;
         collQueued = true;
-        requestAnimationFrame(() => { collQueued = false; syncCollectionBar(); syncStrokeRange(); syncCanvasLeft(); watchSidebar(); syncActiveRow(); syncPalettes(); syncPressureRange(); syncOutline(); syncShapes(); syncQuickColours(); syncPenModeRow(); });
+        requestAnimationFrame(() => { collQueued = false; syncCollectionBar(); syncStrokeRange(); syncCanvasLeft(); watchSidebar(); syncActiveRow(); syncPalettes(); syncPressureRange(); syncOutline(); syncShapes(); syncQuickColours(); syncPenModeRow(); syncSearchRows(); syncBookmarkRows(); });
     };
 
     new MutationObserver(() => { if (drawingNow()) return; place(); syncNotes(); queueCollectionBar(); }).observe(document.body, { childList: true, subtree: true });
     window.addEventListener('resize', queueCollectionBar);
-    setInterval(() => { if (drawingNow()) return; place(); syncNotes(); syncChrome(); syncTools(); syncPanels(); syncCollectionBar(); syncStrokeRange(); syncTreePick(); syncCanvasLeft(); watchSidebar(); syncActiveRow(); syncPalettes(); syncPressureRange(); syncOutline(); syncShapes(); syncQuickColours(); syncPenModeRow(); }, 250);
+    setInterval(() => { if (drawingNow()) return; place(); syncNotes(); syncChrome(); syncTools(); syncPanels(); syncCollectionBar(); syncStrokeRange(); syncTreePick(); syncCanvasLeft(); watchSidebar(); syncActiveRow(); syncPalettes(); syncPressureRange(); syncOutline(); syncShapes(); syncQuickColours(); syncPenModeRow(); syncSearchRows(); syncBookmarkRows(); }, 250);
     place();
     syncNotes();
 
@@ -1228,7 +1229,7 @@ if (typeof module !== 'undefined') module.exports = [];
     quickColours.setAttribute('role', 'toolbar');
     quickColours.setAttribute('aria-label', 'Colour and thickness');
     document.body.appendChild(quickColours);
-    let quickSig = '';
+    let quickSig = '', quickW = 0, quickWc = 0, quickCompact = false;
     const strokeChoices = ex => {
         const column = ex.querySelector('.Island.App-menu__left .panelColumn');
         const row = column && [...column.children].find(r => { const h = r.querySelector(':scope > h3'); return h && KINDS.stroke.label.test(h.textContent); });
@@ -1243,7 +1244,11 @@ if (typeof module !== 'undefined') module.exports = [];
         const bar = ex && [...ex.querySelectorAll('.App-toolbar')].find(b => b.getBoundingClientRect().width > 0);
         const show = !!bar && QUICK_TOOLS.includes(tool) && !body.classList.contains('tui-props-open') &&
             !ex.querySelector('.App-toolbar__extra-tools-dropdown') && TOOL_GROUPS.every(g => g.bar.hidden);
-        if (!show) { if (!quickColours.hidden) quickColours.hidden = true; return; }
+        if (!show) {
+            if (!quickColours.hidden) quickColours.hidden = true;
+            if (body.classList.contains('tui-quick-on')) body.classList.remove('tui-quick-on');
+            return;
+        }
         const colours = strokeChoices(ex);
         const current = String(app.state.currentItemStrokeColor || '').toLowerCase();
         const width = app.state.currentItemStrokeWidth;
@@ -1254,11 +1259,37 @@ if (typeof module !== 'undefined') module.exports = [];
                 `<button type="button" class="tui-quick-swatch${c === current ? ' active' : ''}" data-colour="${c}" aria-label="Colour ${c}" style="--tui-swatch:${c}"></button>`).join('') +
                 (tool === 'text' ? '' : '<span class="tui-quick-sep"></span>' + QUICK_WIDTHS.map(([w, label]) =>
                     `<button type="button" class="tui-quick-width${w === width ? ' active' : ''}" data-width="${w}" aria-label="${label}" style="--tui-w:${w}"></button>`).join(''));
+            // its width at the normal size and at the compact one (smaller swatches), measured once per content
+            quickColours.hidden = false;
+            quickColours.classList.remove('tui-compact');
+            quickW = quickColours.offsetWidth;
+            quickColours.classList.add('tui-compact');
+            quickWc = quickColours.offsetWidth;
+            quickCompact = true;
         }
         quickColours.hidden = false;
-        const r = bar.getBoundingClientRect(), w = quickColours.offsetWidth, h = quickColours.offsetHeight;
-        quickColours.style.left = Math.round(Math.min(window.innerWidth - w - 8, Math.max(8, r.left + r.width / 2 - w / 2))) + 'px';
-        quickColours.style.top = Math.round(r.top - h - 10) + 'px';
+        // on the tool bar's line, right of it, when both fit in the drawing area (the bar moves left by half the row's
+        // width, so the two stay centred together); otherwise above the bar
+        // the normal size if it fits beside the bar, else the compact one (portrait), else above the bar
+        const barW = bar.getBoundingClientRect().width, areaW = ex.getBoundingClientRect().width;
+        const compact = barW + quickW + 24 > areaW && barW + quickWc + 24 <= areaW;
+        if (quickCompact !== compact) { quickColours.classList.toggle('tui-compact', compact); quickCompact = compact; }
+        const w = compact ? quickWc : quickW;
+        const joined = barW + w + 24 <= areaW;
+        if (joined) {
+            setStyleVar(body, '--tui-quick-w', w + 'px');
+            if (!body.classList.contains('tui-quick-on')) body.classList.add('tui-quick-on');
+            if (!quickColours.classList.contains('tui-joined')) quickColours.classList.add('tui-joined');
+            const r = bar.getBoundingClientRect();   // after the shift
+            const pb = getComputedStyle(bar).paddingBottom;
+            setPos(quickColours, { left: Math.round(r.right - 1) + 'px', top: Math.round(r.top) + 'px', height: Math.round(r.height) + 'px', paddingBottom: pb });
+        } else {
+            if (body.classList.contains('tui-quick-on')) body.classList.remove('tui-quick-on');
+            if (quickColours.classList.contains('tui-joined')) quickColours.classList.remove('tui-joined');
+            const r = bar.getBoundingClientRect(), h = quickColours.offsetHeight;
+            setPos(quickColours, { left: Math.round(Math.min(window.innerWidth - w - 8, Math.max(8, r.left + r.width / 2 - w / 2))) + 'px',
+                top: Math.round(r.top - h - 10) + 'px', height: '', paddingBottom: '' });
+        }
     };
     quickColours.addEventListener('click', e => {
         const c = e.target.closest('[data-colour]'), w = e.target.closest('[data-width]');
@@ -1294,6 +1325,54 @@ if (typeof module !== 'undefined') module.exports = [];
         if (column.firstElementChild !== row) column.prepend(row);
         const input = row.querySelector('input');
         if (input.checked !== !!app.state.penMode) input.checked = !!app.state.penMode;
+    };
+
+
+    // ---------------------------------------------------------------- search results and bookmarks: rows like Recent
+    // Quick search: Trilium writes a result's path and title as one line ("path › title"), which wrapped over three
+    // lines; the title and the path go into attributes that tablet_ui.css shows on two lines. The extract of a canvas
+    // or another JSON note (raw JSON) is not shown. Bookmarks: the note's path under its title, from the bookmarked
+    // notes (the children of _lbBookmarks), matched to the rows by title.
+    const syncSearchRows = () => {
+        for (const t of document.querySelectorAll('.quick-search-menu .search-result-title')) {
+            const text = t.textContent.replace(/\s+/g, ' ').trim();
+            if (t.__tuiText === text) continue;
+            t.__tuiText = text;
+            const i = text.lastIndexOf('›');
+            setAttr(t, 'data-tui-title', i < 0 ? text : text.slice(i + 1).trim());
+            setAttr(t, 'data-tui-path', i < 0 ? '' : text.slice(0, i).trim());
+            const content = t.closest('.quick-search-item')?.querySelector('.search-result-content');
+            if (content) {
+                const raw = /^\s*("\w+"\s*:|[{\[])/.test(content.textContent) || /"elements"\s*:/.test(content.textContent);
+                if (content.classList.contains('tui-sr-raw') !== raw) content.classList.toggle('tui-sr-raw', raw);
+            }
+        }
+    };
+    let bookmarkPaths = null, bookmarkPathsAt = 0, bookmarkPathsLoading = false;
+    const notePathTitles = async note => {
+        const names = [];
+        for (let cur = note, guard = 0; cur && guard < 20; guard++) {
+            const parents = (await cur.getParentNotes()).filter(n => n && n.noteId !== 'root' && !n.noteId.startsWith('_'));
+            cur = parents[0];
+            if (cur) names.unshift(cur.title);
+        }
+        return names.join(' › ');
+    };
+    const loadBookmarkPaths = async () => {
+        bookmarkPathsLoading = true;
+        try {
+            const holder = await api.getNote('_lbBookmarks');
+            const map = {};
+            for (const n of holder ? await holder.getChildNotes() : []) map[n.title] = await notePathTitles(n);
+            bookmarkPaths = map;
+            bookmarkPathsAt = Date.now();
+        } catch (e) { bookmarkPaths = bookmarkPaths || {}; } finally { bookmarkPathsLoading = false; }
+    };
+    const syncBookmarkRows = () => {
+        const rows = document.querySelectorAll('.tn-dropdown-portal.right-dropdown-widget > .dropdown-menu.show li.dropdown-item .tn-menu-name');
+        if (!rows.length) return;
+        if ((!bookmarkPaths || Date.now() - bookmarkPathsAt > 10000) && !bookmarkPathsLoading) { loadBookmarkPaths().then(syncBookmarkRows); if (!bookmarkPaths) return; }
+        for (const r of rows) setAttr(r, 'data-tui-path', bookmarkPaths[r.textContent.trim()] || '');
     };
 
     // ---------------------------------------------------------------- the drawing stays put when a left panel opens

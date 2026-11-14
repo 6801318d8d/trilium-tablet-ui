@@ -1218,31 +1218,31 @@ body.mobile #tui-outline .tui-outline-item.active {
    and 17 dp gaps, and some rows half as wide (Fullscreen and Zen mode; backlinks, paths, attachments, attributes).
    ------------------------------------------------------------------------------------------------------------ */
 @media (min-width: 700px) {
-  body.mobile .tn-dropdown-portal:is(.global-menu, .note-actions) > .dropdown-menu.show .tn-menu-scroll { display: flex !important; flex-direction: column; gap: 0; }
-  body.mobile .tn-dropdown-portal:is(.global-menu, .note-actions) > .dropdown-menu.show .tn-menu-actions {
+  body.mobile .tn-dropdown-portal:is(.global-menu, .note-actions, .right-dropdown-widget) > .dropdown-menu.show .tn-menu-scroll { display: flex !important; flex-direction: column; gap: 0; }
+  body.mobile .tn-dropdown-portal:is(.global-menu, .note-actions, .right-dropdown-widget) > .dropdown-menu.show .tn-menu-actions {
     display: flex !important;
     flex-direction: column;
     gap: 0 !important;
     margin: 0 0 16px !important;
   }
-  body.mobile .tn-dropdown-portal:is(.global-menu, .note-actions) > .dropdown-menu.show .form-list-row {
+  body.mobile .tn-dropdown-portal:is(.global-menu, .note-actions, .right-dropdown-widget) > .dropdown-menu.show .form-list-row {
     display: flex !important;
     flex-direction: column;
     gap: 0 !important;
     margin: 0 !important;
   }
-  body.mobile .tn-dropdown-portal:is(.global-menu, .note-actions) > .dropdown-menu.show .form-list-row .form-list-col { width: 100% !important; min-width: 0; }
+  body.mobile .tn-dropdown-portal:is(.global-menu, .note-actions, .right-dropdown-widget) > .dropdown-menu.show .form-list-row .form-list-col { width: 100% !important; min-width: 0; }
   /* the actions at the top are rows too in portrait (icon, then text), as in landscape; their text starts where the
      other rows' text does (those have an 8 px margin after the icon: the 8 px gap above) */
-  body.mobile .tn-dropdown-portal:is(.global-menu, .note-actions) > .dropdown-menu.show .tn-menu-action {
+  body.mobile .tn-dropdown-portal:is(.global-menu, .note-actions, .right-dropdown-widget) > .dropdown-menu.show .tn-menu-action {
     flex-direction: row !important;
     justify-content: flex-start !important;
     align-items: center !important;
     text-align: start !important;
   }
-  body.mobile .tn-dropdown-portal:is(.global-menu, .note-actions) > .dropdown-menu.show .tn-menu-action .tn-menu-action-title { font-size: 15.5px !important; white-space: nowrap; }
-  body.mobile .tn-dropdown-portal:is(.global-menu, .note-actions) > .dropdown-menu.show :is(.tn-menu-action .tn-menu-action-icon, .tn-menu-action .bx, .dropdown-item .bx) { font-size: 22px !important; }
-  body.mobile .tn-dropdown-portal:is(.global-menu, .note-actions) > .dropdown-menu.show :is(.tn-menu-action, .dropdown-item) {
+  body.mobile .tn-dropdown-portal:is(.global-menu, .note-actions, .right-dropdown-widget) > .dropdown-menu.show .tn-menu-action .tn-menu-action-title { font-size: 15.5px !important; white-space: nowrap; }
+  body.mobile .tn-dropdown-portal:is(.global-menu, .note-actions, .right-dropdown-widget) > .dropdown-menu.show :is(.tn-menu-action .tn-menu-action-icon, .tn-menu-action .bx, .dropdown-item .bx) { font-size: 22px !important; }
+  body.mobile .tn-dropdown-portal:is(.global-menu, .note-actions, .right-dropdown-widget) > .dropdown-menu.show :is(.tn-menu-action, .dropdown-item) {
     width: 100% !important;
     min-height: 48px !important;
     margin: 0 !important;
@@ -1254,24 +1254,24 @@ body.mobile #tui-outline .tui-outline-item.active {
     border-radius: 0 !important;
   }
   /* first and last row of each group */
-  body.mobile .tn-dropdown-portal:is(.global-menu, .note-actions) > .dropdown-menu.show .tn-menu-action:first-child,
-  body.mobile .tn-dropdown-portal:is(.global-menu, .note-actions) > .dropdown-menu.show .form-list-col:first-child .dropdown-item,
-  body.mobile .tn-dropdown-portal:is(.global-menu, .note-actions) > .dropdown-menu.show :is(.tn-menu-scroll, .note-actions-custom) > .dropdown-item:not(.dropdown-item + .dropdown-item) {
+  body.mobile .tn-dropdown-portal:is(.global-menu, .note-actions, .right-dropdown-widget) > .dropdown-menu.show .tn-menu-action:first-child,
+  body.mobile .tn-dropdown-portal:is(.global-menu, .note-actions, .right-dropdown-widget) > .dropdown-menu.show .form-list-col:first-child .dropdown-item,
+  body.mobile .tn-dropdown-portal:is(.global-menu, .note-actions, .right-dropdown-widget) > .dropdown-menu.show :is(.tn-menu-scroll, .note-actions-custom) > .dropdown-item:not(.dropdown-item + .dropdown-item) {
     border-start-start-radius: 12px !important;
     border-start-end-radius: 12px !important;
   }
-  body.mobile .tn-dropdown-portal:is(.global-menu, .note-actions) > .dropdown-menu.show .tn-menu-action:last-child,
-  body.mobile .tn-dropdown-portal:is(.global-menu, .note-actions) > .dropdown-menu.show .form-list-col:last-child .dropdown-item,
-  body.mobile .tn-dropdown-portal:is(.global-menu, .note-actions) > .dropdown-menu.show :is(.tn-menu-scroll, .note-actions-custom) > .dropdown-item:not(:has(+ .dropdown-item)) {
+  body.mobile .tn-dropdown-portal:is(.global-menu, .note-actions, .right-dropdown-widget) > .dropdown-menu.show .tn-menu-action:last-child,
+  body.mobile .tn-dropdown-portal:is(.global-menu, .note-actions, .right-dropdown-widget) > .dropdown-menu.show .form-list-col:last-child .dropdown-item,
+  body.mobile .tn-dropdown-portal:is(.global-menu, .note-actions, .right-dropdown-widget) > .dropdown-menu.show :is(.tn-menu-scroll, .note-actions-custom) > .dropdown-item:not(:has(+ .dropdown-item)) {
     border-end-start-radius: 12px !important;
     border-end-end-radius: 12px !important;
     border-bottom: 0 !important;
   }
-  body.mobile .tn-dropdown-portal:is(.global-menu, .note-actions) > .dropdown-menu.show .form-list-row .dropdown-item > span:not(.bx):not(.tn-icon) {
+  body.mobile .tn-dropdown-portal:is(.global-menu, .note-actions, .right-dropdown-widget) > .dropdown-menu.show .form-list-row .dropdown-item > span:not(.bx):not(.tn-icon) {
     overflow: visible;
     white-space: normal;
   }
-  body.mobile .tn-dropdown-portal:is(.global-menu, .note-actions) > .dropdown-menu.show .dropdown-divider {
+  body.mobile .tn-dropdown-portal:is(.global-menu, .note-actions, .right-dropdown-widget) > .dropdown-menu.show .dropdown-divider {
     height: 0 !important;
     margin: 8px 0 !important;
     border: 0 !important;
@@ -1576,3 +1576,108 @@ body.mobile #tui-quick-colours .tui-quick-width.active { background: var(--tui-a
     border-radius: 12px;
   }
 }
+
+/* ------------------------------------------------------------------------------------------------------------
+   Quick search results and Bookmarks: rows like Recent changes (tablet_ui.js puts title and path in attributes)
+   ------------------------------------------------------------------------------------------------------------ */
+@media (min-width: 700px) {
+  /* the results float over the tree: an opaque panel down to the bottom edge, so the tree does not show through */
+  body.mobile .quick-search-menu {
+    box-sizing: border-box;
+    height: calc(100dvh - 60px - var(--tui-safe-top, 0px)) !important;
+    max-height: none !important;
+    overflow-y: auto !important;
+    padding: 4px 0 12px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: var(--left-pane-background-color, var(--main-background-color)) !important;
+  }
+  body.mobile .quick-search-menu .quick-search-results { display: flex; flex-direction: column; gap: 0; }
+  body.mobile .quick-search-menu .quick-search-results > a.dropdown-item {
+    display: block;
+    margin: 0 !important;
+    padding: 9px 14px !important;
+    border: 0 !important;
+    border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent) !important;
+    border-radius: 0 !important;
+    background: color-mix(in srgb, currentColor 5%, transparent) !important;
+    white-space: normal;
+  }
+  body.mobile .quick-search-menu .quick-search-results > a.dropdown-item:first-child { border-start-start-radius: 12px !important; border-start-end-radius: 12px !important; }
+  body.mobile .quick-search-menu .quick-search-results > a.dropdown-item:last-child { border-end-start-radius: 12px !important; border-end-end-radius: 12px !important; border-bottom: 0 !important; }
+  body.mobile .quick-search-menu .quick-search-results > a.dropdown-item:active { background: color-mix(in srgb, currentColor 11%, transparent) !important; }
+  body.mobile .quick-search-menu .quick-search-item { padding: 0 !important; background: transparent !important; }
+  body.mobile .quick-search-menu .quick-search-item-header { display: grid; grid-template-columns: 24px minmax(0, 1fr); column-gap: 10px; align-items: start; }
+  body.mobile .quick-search-menu .quick-search-item-icon { margin-top: 2px; font-size: 20px; }
+  body.mobile .quick-search-menu .search-result-title[data-tui-title] { display: block; min-width: 0; font-size: 0 !important; }
+  body.mobile .quick-search-menu .search-result-title[data-tui-title]::before,
+  body.mobile .quick-search-menu .search-result-title[data-tui-title]::after {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  body.mobile .quick-search-menu .search-result-title[data-tui-title]::before {
+    content: attr(data-tui-title);
+    font: 400 15.5px/1.35 var(--main-font-family, system-ui, sans-serif);
+    color: var(--main-text-color);
+  }
+  body.mobile .quick-search-menu .search-result-title[data-tui-title]::after {
+    content: attr(data-tui-path);
+    font: 400 12.5px/1.35 var(--main-font-family, system-ui, sans-serif);
+    color: var(--muted-text-color, #6b7470);
+  }
+  body.mobile .quick-search-menu .search-result-content {
+    margin: 4px 0 0 34px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    color: var(--muted-text-color, #6b7470);
+    font: 400 13px/1.4 var(--main-font-family, system-ui, sans-serif);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  body.mobile .quick-search-menu .search-result-content br { display: none; }
+  body.mobile .quick-search-menu .search-result-content.tui-sr-raw { display: none !important; }
+  body.mobile .quick-search-menu .quick-search-footer { margin-top: 10px; padding: 0 !important; border: 0 !important; background: transparent !important; }
+  body.mobile .quick-search-menu .show-in-full-search { width: 100%; min-height: 44px; border-radius: 12px !important; }
+
+  /* Bookmarks: the path under the title */
+  body.mobile .tn-dropdown-portal.right-dropdown-widget > .dropdown-menu.show li.dropdown-item .tn-menu-name { min-width: 0; }
+  body.mobile .tn-dropdown-portal.right-dropdown-widget > .dropdown-menu.show li.dropdown-item .tn-menu-name[data-tui-path]:not([data-tui-path=""])::after {
+    content: attr(data-tui-path);
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font: 400 12.5px/1.35 var(--main-font-family, system-ui, sans-serif);
+    color: var(--muted-text-color, #6b7470);
+  }
+  body.mobile .tn-dropdown-portal.right-dropdown-widget > .dropdown-menu.show li.dropdown-item { min-height: 52px !important; padding-block: 6px !important; }
+}
+
+/* ------------------------------------------------------------------------------------------------------------
+   The quick row of colours and thicknesses on the tool bar's line, right of it, as one island, when both fit
+   (tablet_ui.js sets body.tui-quick-on and --tui-quick-w, the row's width)
+   ------------------------------------------------------------------------------------------------------------ */
+@media (min-width: 700px) {
+  body.mobile.tui-quick-on .excalidraw .App-menu_top .shapes-section { transform: translateX(calc(-50% - var(--tui-quick-w, 0px) / 2)) !important; }
+  body.mobile.tui-quick-on .excalidraw .App-toolbar { border-top-right-radius: 0 !important; }
+  body.mobile #tui-quick-colours.tui-joined {
+    box-sizing: border-box;
+    padding-top: 0;
+    padding-left: 4px;
+    padding-right: 14px;
+    border: 0;
+    border-radius: 0 18px 0 0;
+    box-shadow: none;
+    background: var(--tui-chrome-bg, #fafafa);
+  }
+}
+/* compact, when the normal row does not fit beside the bar (portrait) */
+body.mobile #tui-quick-colours.tui-compact { gap: 6px; }
+body.mobile #tui-quick-colours.tui-compact .tui-quick-swatch { width: 28px; height: 28px; }
+body.mobile #tui-quick-colours.tui-compact .tui-quick-width { width: 30px; }

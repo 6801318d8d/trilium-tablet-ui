@@ -22,7 +22,8 @@ or more, so phones and the desktop layout are unchanged.
   status bar.
 - **Menu and the note's "…" menu:** one column of equal rows, in groups like a settings list.
 - **Recent changes:** one row per note (title, path, time on the right; the whole row opens the note), the day on top
-  while scrolling, deleted notes dimmed with a small "undelete" button.
+  while scrolling, deleted notes dimmed with a small "undelete" button. **Quick search results** and **Bookmarks** use
+  the same rows: title, path under it (and a two-line extract for search results, none for raw JSON).
 - **Note tree:** the top bar names the folder you are in ("‹" goes up a level); the open note is highlighted; the tree
   closes when a note is chosen in it or the open note is tapped.
 - **New** asks for the note type first, with an optional title; without one the note is named after its type and the
@@ -42,8 +43,9 @@ or more, so phones and the desktop layout are unchanged.
   - tool options open in the right panel with a button; tapping a tool only changes the tool;
   - stroke width is a continuous slider; Stroke and Background get a row of your own colours (add, apply, remove,
     and Excalidraw's five can be removed too);
-  - with a drawing tool (pencil, shapes, lines, text), a row above the tool bar sets the colour and, except for text,
-    the thickness (thin, medium, thick) with one tap, without opening the tool options;
+  - with a drawing tool (pencil, shapes, lines, text), a row sets the colour and, except for text, the thickness
+    (thin, medium, thick) with one tap, without opening the tool options; it sits on the tool bar's line, as one
+    island with it (smaller in portrait), or above it where both do not fit;
   - the eraser deletes strokes as soon as it touches them (Excalidraw greys them out until the pen lifts);
   - a "Pen pressure" slider stretches the pen's pressure, so light and firm strokes differ more;
   - in pen mode one finger moves the sheet; the drawing stays in place when a side panel opens;
