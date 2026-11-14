@@ -35,7 +35,8 @@
    - Canvas images load in the Android app too (its fetch repeats the Content-Type header, see below).
    - "Note panel" (outline, attributes, connections): an info icon, and in landscape a docked right panel, like "…".
    - The New panel: an optional title; without one the note is named after its type and the time. From the tree's "+"
-     the note goes into the folder the tree shows, and Notes stays green; from "New", into the inbox or today's note.
+     the note goes into the folder the tree shows, and Notes stays green; from "Insert child note" in the tree's menu,
+     into that note; from "New", into the inbox or today's note.
    - Text notes in landscape: the outline of the headings in the free space right of the reading column.
    - A few seconds after an edit the app syncs at once (it syncs once a minute otherwise), so the server and the web
      pages open on it show the change within seconds; in the foreground it also syncs every 10 s, so changes made
@@ -832,32 +833,43 @@ if (typeof module !== 'undefined') module.exports = [];
             else console.error(err);
         }
     });
-    // the folder the tree shows, read from Trilium's component tree (the page carries no note id): the header's title
-    // component has the folder's note, each row the path of its note. Without rows (an empty folder) the note id
-    // alone is the path. null when Trilium's components change shape: the "+" then keeps its own behaviour.
-    const treeFolder = () => {
+    // the tree's notes, read from Trilium's component tree (the page carries no note id): the components of the tree,
+    // each with its props and first DOM node. The header's title component has the folder's note; each row (its DOM
+    // node is the .mobile-navigator-row) has its note and its path. null/empty when Trilium's components change shape:
+    // the "+" and "Insert child note" then keep their own behaviour.
+    const treeComponents = () => {
         const nav = q('#mobile-sidebar-wrapper .mobile-note-navigator');
-        const header = nav && nav.querySelector('.mobile-navigator-current-header');
         const top = nav && nav.component && nav.component.container && nav.component.container.__k;
-        if (!header || !top) return null;
-        let note = null;
-        const rows = [];
+        const out = [];
+        if (!top) return out;
         const seen = new Set();
         const walk = v => {
             if (!v || typeof v !== 'object' || seen.has(v) || seen.size > 5000) return;
             seen.add(v);
-            const p = v.props;
-            if (p && typeof v.type === 'function') {
-                if (!note && p.note && p.note.noteId && v.__e && header.contains(v.__e)) note = p.note;
-                if (typeof p.childNotePath === 'string' && p.parentNoteId) rows.push(p);
-            }
+            if (v.props && typeof v.type === 'function') out.push({ props: v.props, el: v.__e });
             if (Array.isArray(v.__k)) for (const k of v.__k) walk(k);
         };
         walk(top);
-        if (!note) return null;
-        const row = rows.find(p => p.parentNoteId === note.noteId && p.childNotePath.split('/').slice(-2, -1)[0] === note.noteId);
-        const path = row ? row.childNotePath.split('/').slice(0, -1).join('/') : note.noteId;
-        return { noteId: note.noteId, title: note.title, path, dayNote: typeof note.hasLabel === 'function' && note.hasLabel('dateNote') };
+        return out;
+    };
+    const noteTarget = (note, path) => ({ noteId: note.noteId, title: note.title, path,
+        dayNote: typeof note.hasLabel === 'function' && note.hasLabel('dateNote') });
+    // the folder the tree shows: its path from a row of its children, else (an empty folder) its note id alone
+    const treeFolder = () => {
+        const header = q('#mobile-sidebar-wrapper .mobile-navigator-current-header');
+        if (!header) return null;
+        const comps = treeComponents();
+        const head = comps.find(c => c.props.note && c.props.note.noteId && c.el && header.contains(c.el));
+        if (!head) return null;
+        const note = head.props.note;
+        const row = comps.find(c => typeof c.props.childNotePath === 'string' && c.props.parentNoteId === note.noteId
+            && c.props.childNotePath.split('/').slice(-2, -1)[0] === note.noteId);
+        return noteTarget(note, row ? row.props.childNotePath.split('/').slice(0, -1).join('/') : note.noteId);
+    };
+    // the note of a row of the tree
+    const rowTarget = rowEl => {
+        const c = treeComponents().find(c => c.el === rowEl && c.props.note && typeof c.props.childNotePath === 'string');
+        return c ? noteTarget(c.props.note, c.props.childNotePath) : null;
     };
     document.addEventListener('click', e => {
         const t = e.target;
@@ -870,6 +882,31 @@ if (typeof module !== 'undefined') module.exports = [];
         closeTree();
         setNewOpen(true, folder);
     }, true);
+    // "Insert child note" in the tree's menu opens the same panel for the note the menu is for (the row, or the folder
+    // of the header's "…" or long press), instead of Trilium's list of types and an untitled note with the keyboard up.
+    // The note is read at the touch that opens the menu.
+    let treeMenuTarget = null;
+    document.addEventListener('pointerdown', e => {
+        const t = e.target;
+        if (!t || !t.closest || !t.closest('#mobile-sidebar-wrapper .mobile-note-navigator')) return;
+        const row = t.closest('.mobile-navigator-row');
+        treeMenuTarget = row ? rowTarget(row) : t.closest('.mobile-navigator-current-tile') ? treeFolder() : null;
+    }, true);
+    for (const type of ['pointerdown', 'pointerup', 'click']) {
+        document.addEventListener(type, e => {
+            const t = e.target;
+            const item = t && t.closest && t.closest('.tn-popup.tn-menu .dropdown-item:has(.bx-subdirectory-right):not(.disabled)');
+            if (!item || !treeMenuTarget || !body.classList.contains('tui-tree-ctx')) return;
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            if (type !== 'click') return;
+            const target = treeMenuTarget;
+            // Escape outside the menu closes Trilium's context menu
+            body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true, cancelable: true }));
+            closeTree();
+            setNewOpen(true, target);
+        }, true);
+    }
 
     // ---------------------------------------------------------------- pen taps that end without a click
     // after writing with the pen, the WebView sometimes ends a pen tap (pointerdown and pointerup on the same button)

@@ -17,7 +17,8 @@ or more, so phones and the desktop layout are unchanged.
 
 ## What it changes
 
-- **Landscape: a navigation rail** on the left with a label under each launcher; Sync at the bottom.
+- **Landscape: a navigation rail** on the left with a label under each launcher; Sync at the bottom. The rail, the
+  note's top bar, the tool bars and the side panels share one grey, and the rows of every panel another.
 - **Docked side panels.** On the left: Menu, the note tree, the menu of a note in the tree, Recent changes, Bookmarks,
   the note types of "New" or the quick search, one at a time. On the right: the note's "…" menu, the note panel
   (outline, attributes, connections) or the canvas tool options. The note area shrinks instead of being covered, and
@@ -29,13 +30,15 @@ or more, so phones and the desktop layout are unchanged.
 - **Note tree:** the top bar names the folder you are in ("‹" goes up a level); the open note is highlighted; the tree
   closes when a note is chosen in it or the open note is tapped. A long press on a note, or the "…" next to the
   folder's name, opens that note's menu (Move, Clone, Duplicate, Archive, Insert child note, colour…), which takes the
-  tree's place, titled with the note's name.
+  tree's place, titled with the note's name. The quick search field at the top of the tree shows its results as you
+  type.
 - **New** asks for the note type first, with an optional title; without one the note is named after its type and the
   time ("Canvas 07:42"), so the tree does not fill up with notes called "New note". The tree's "+" opens the same
-  panel ("New note in ‹folder›", Notes stays green), and the note goes into the folder the tree shows. With the
-  "New" launcher moved to the available launchers (Configure Launchbar), the "+" is the one way to create notes, and
-  a shorter rail. **Search** opens the quick search
-  in the left panel, with results as you type, instead of replacing the open note with a search note.
+  panel ("New note in ‹folder›", Notes stays green), and the note goes into the folder the tree shows; "Insert child
+  note" in a note's menu opens it for that note. **Search** opens the quick search in the left panel, with results as
+  you type, instead of replacing the open note with a search note. With the "New" and "Search" launchers moved to the
+  available launchers (Configure Launchbar), the tree's "+" and its search field do their work, and the rail is
+  shorter.
 - **Collections:** the collection's bar (view type, settings, calendar navigation) joins the title row when it fits.
 - **Text notes:** a reading column of about 720 dp, a compact formatting toolbar docked to the bottom edge and, in
   landscape, the outline of the headings in the free space on the right (from three headings).

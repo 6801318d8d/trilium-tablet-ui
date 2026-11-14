@@ -912,6 +912,9 @@ body.mobile.tui-focus:has(.note-split.active.type-canvas) #detail-container { wi
    One colour for the top bar, the rail and the tool bars (tablet_ui.js sets --tui-chrome-bg from the rail's colour)
    ------------------------------------------------------------------------------------------------------------ */
 @media (min-width: 700px) {
+  /* the rail in the side panels' grey, so the rail and an open panel read as one block; the top bar and the tool bars
+     follow it */
+  body.mobile #launcher-pane { background-color: var(--left-pane-background-color, #f2f2f2) !important; }
   body.mobile .note-split .title-row { background: var(--tui-chrome-bg, #fafafa) !important; }
 }
 
@@ -1439,9 +1442,11 @@ body.mobile #tui-quick-colours .tui-quick-swatch.active {
     padding: 7px 14px;
     border: 0;
     border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent);
-    background: color-mix(in srgb, currentColor 5%, transparent);
+    background: var(--card-background-color, rgba(0, 0, 0, .05));   /* the tree rows' grey */
     list-style: none;
   }
+  /* the tree's margins: Trilium's 16px around the list came on top of the panel's own */
+  body.mobile .recent-changes-dialog .recent-changes-content { margin: 0 !important; }
   /* the timeline: its line and dots */
   body.mobile .recent-changes-dialog .recent-changes-content :is(div, ul, li, li > span)::before,
   body.mobile .recent-changes-dialog .recent-changes-content :is(div, ul, li)::after { display: none !important; content: none !important; }
@@ -1527,7 +1532,7 @@ body.mobile #tui-quick-colours .tui-quick-swatch.active {
     background: var(--left-pane-background-color, var(--main-background-color)) !important;
   }
   body.mobile .modal.recent-changes-dialog .modal-header { padding: 18px 18px 6px !important; border: 0 !important; }
-  body.mobile .modal.recent-changes-dialog .modal-body { padding: 0 12px 12px !important; overflow-y: auto !important; }
+  body.mobile .modal.recent-changes-dialog .modal-body { padding: 0 16px 12px !important; overflow-y: auto !important; }
   body.mobile:has(.modal.recent-changes-dialog.show) .modal-backdrop { display: none !important; }
   body.mobile:has(.modal.recent-changes-dialog.show) #mobile-sidebar-wrapper { display: none !important; }
   body.mobile:has(.modal.recent-changes-dialog.show) #mobile-rest-container { margin-inline-start: var(--tui-panel-width); }
@@ -1604,7 +1609,7 @@ body.mobile #tui-quick-colours .tui-quick-width.active { background: var(--tui-a
     border: 0 !important;
     border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent) !important;
     border-radius: 0 !important;
-    background: color-mix(in srgb, currentColor 5%, transparent) !important;
+    background: var(--card-background-color, rgba(0, 0, 0, .05)) !important;   /* the tree rows' grey */
     white-space: normal;
   }
   body.mobile .quick-search-menu .quick-search-results > a.dropdown-item:first-child { border-start-start-radius: 12px !important; border-start-end-radius: 12px !important; }
