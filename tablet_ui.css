@@ -816,8 +816,9 @@ body.mobile.tui-focus:has(.note-split.active.type-canvas) #detail-container { wi
   body.mobile #tui-new-panel { left: 84px; box-shadow: none; }
   body.mobile.tui-new-open #mobile-sidebar-wrapper { display: none !important; }
   body.mobile.tui-new-open #mobile-rest-container { margin-inline-start: var(--tui-panel-width); }
-  body.mobile.tui-new-open #launcher-pane .launcher-button.bx-sitemap.on { background: transparent !important; color: inherit !important; }
-  body.mobile.tui-new-open #launcher-pane .launcher-button.bx-sitemap.on::after { color: var(--launcher-pane-text-color, currentColor) !important; font-weight: 500 !important; }
+  /* Notes is not green while New's panel is open, unless the tree's "+" opened it (body.tui-new-tree) */
+  body.mobile.tui-new-open:not(.tui-new-tree) #launcher-pane .launcher-button.bx-sitemap.on { background: transparent !important; color: inherit !important; }
+  body.mobile.tui-new-open:not(.tui-new-tree) #launcher-pane .launcher-button.bx-sitemap.on::after { color: var(--launcher-pane-text-color, currentColor) !important; font-weight: 500 !important; }
   /* New, while its panel is open: the same green as Notes and Menu */
   body.mobile #launcher-pane .launcher-button.bx-file-blank.on,
   body.mobile #launcher-pane .launcher-button.bx-file-blank.on:focus { background: var(--tui-active-bg) !important; color: var(--tui-accent); }

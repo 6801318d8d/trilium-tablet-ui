@@ -8,7 +8,8 @@
      landscape); tapping a tool only changes the tool.
    - Pen mode: once Excalidraw has seen a pen ("Pen mode - prevent touch" on), one finger moves the sheet while a
      drawing tool is active (Excalidraw itself ignores that finger). Two fingers still pinch-zoom.
-   - "New" asks for the note type first (a panel with Trilium's types), then creates the note.
+   - The tree's "+" and the "New" launcher (if it is on the launch bar) ask for the note type first (a panel with
+     Trilium's types), then create the note.
    - "Search" opens the quick search in the left panel (results as you type) instead of a search note.
    - Pen taps that the WebView ends without a click (after writing) are completed by the script.
    - Canvas: shape tools stay active after drawing (the padlock is on in every note, unless opened by hand). The pen
@@ -33,8 +34,8 @@
      button 2 erases while held (on the tablet this was made on, the pen's button never reaches the page).
    - Canvas images load in the Android app too (its fetch repeats the Content-Type header, see below).
    - "Note panel" (outline, attributes, connections): an info icon, and in landscape a docked right panel, like "…".
-   - "New": an optional title; without one the note is named after its type and the time. The tree's "+" opens the
-     same panel, and the note goes into the folder the tree shows.
+   - The New panel: an optional title; without one the note is named after its type and the time. From the tree's "+"
+     the note goes into the folder the tree shows, and Notes stays green; from "New", into the inbox or today's note.
    - Text notes in landscape: the outline of the headings in the free space right of the reading column.
    - A few seconds after an edit the app syncs at once (it syncs once a minute otherwise), so the server and the web
      pages open on it show the change within seconds; in the foreground it also syncs every 10 s, so changes made
@@ -257,7 +258,8 @@ if (typeof module !== 'undefined') module.exports = [];
         const b = q('#launcher-pane .launcher-button.bx-sitemap');
         if (!b) return;
         const w = document.getElementById('mobile-sidebar-wrapper');
-        b.classList.toggle('on', !!w && !w.classList.contains('left-pane-hidden'));
+        // also green while the tree's "+" has its New panel open in the tree's place (body.tui-new-tree)
+        b.classList.toggle('on', (!!w && !w.classList.contains('left-pane-hidden')) || body.classList.contains('tui-new-tree'));
     };
     // Menu and the tree share the left panel: tapping Notes while Menu is open closes Menu and shows the tree (instead
     // of toggling a tree that Menu was hiding)
@@ -786,7 +788,9 @@ if (typeof module !== 'undefined') module.exports = [];
         setAttr(newPanel, 'aria-label', label);
         newPanel.hidden = !on;
         body.classList.toggle('tui-new-open', on);
-        newButton()?.classList.toggle('on', on);
+        body.classList.toggle('tui-new-tree', on && !!newTarget);
+        newButton()?.classList.toggle('on', on && !newTarget);
+        syncNotes();
     };
     document.addEventListener('click', e => {
         const t = e.target;

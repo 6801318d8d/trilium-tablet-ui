@@ -32,7 +32,9 @@ or more, so phones and the desktop layout are unchanged.
   The folder's own "…" is gone, so the only "…" on screen is the open note's.
 - **New** asks for the note type first, with an optional title; without one the note is named after its type and the
   time ("Canvas 07:42"), so the tree does not fill up with notes called "New note". The tree's "+" opens the same
-  panel ("New note in ‹folder›"), and the note goes into the folder the tree shows. **Search** opens the quick search
+  panel ("New note in ‹folder›", Notes stays green), and the note goes into the folder the tree shows. With the
+  "New" launcher moved to the available launchers (Configure Launchbar), the "+" is the one way to create notes, and
+  a shorter rail. **Search** opens the quick search
   in the left panel, with results as you type, instead of replacing the open note with a search note.
 - **Collections:** the collection's bar (view type, settings, calendar navigation) joins the title row when it fits.
 - **Text notes:** a reading column of about 720 dp, a compact formatting toolbar docked to the bottom edge and, in
