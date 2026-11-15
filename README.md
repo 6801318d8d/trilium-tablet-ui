@@ -19,14 +19,22 @@ or more, so phones and the desktop layout are unchanged.
 
 - **Landscape: a navigation rail** on the left with a label under each launcher; Sync at the bottom. The rail, the
   note's top bar, the tool bars and the side panels share one grey, and the rows of every panel another.
+- **Portrait: a bottom bar** with the rail's items and labels: Notes, Recent, Bookmarks, Sync and Menu. Notes slides
+  the note tree in over the note and is green while the tree shows.
 - **Docked side panels.** On the left: Menu, the note tree, the menu of a note in the tree, Recent changes, Bookmarks,
   the note types of "New" or the quick search, one at a time. On the right: the note's "…" menu, the note panel
   (outline, attributes, connections) or the canvas tool options. The note area shrinks instead of being covered, and
   the panels start below the system status bar.
 - **Menu and the note's "…" menu:** one column of equal rows, in groups like a settings list.
 - **Recent changes:** one row per note (title, path, time on the right; the whole row opens the note), the day on top
-  while scrolling, deleted notes dimmed with a small "undelete" button. **Quick search results** and **Bookmarks** use
-  the same rows: title, path under it (and a two-line extract for search results, none for raw JSON).
+  while scrolling, deleted notes struck through with a small "undelete" button. Two or more notes deleted on the same
+  day fold into one row ("12 deleted notes") that shows them, so a clean-up does not push the notes you work on out of
+  sight. **Quick search results** and **Bookmarks** use the same rows: title, path under it (and a two-line extract for
+  search results, none for raw JSON).
+- **Small text and small buttons:** secondary text (paths, times, captions) in one grey with at least 4.5:1 contrast
+  on the panels and rows; captions in sentence case instead of spaced capitals; launcher labels at 12 px; Recent's "…"
+  and "×" and the colour swatches keep their size but take a 44 dp touch area; collection cards are at least 220 dp
+  wide, so their titles fit.
 - **Note tree:** the top bar names the folder you are in ("‹" goes up a level); the open note is highlighted; the tree
   closes when a note is chosen in it or the open note is tapped. A long press on a note, or the "…" next to the
   folder's name, opens that note's menu (Move, Clone, Duplicate, Archive, Insert child note, colour…), which takes the
@@ -62,7 +70,11 @@ or more, so phones and the desktop layout are unchanged.
   - a "Pen pressure" slider stretches the pen's pressure, so light and firm strokes differ more;
   - in pen mode one finger moves the sheet; the drawing stays in place when a side panel opens;
   - images in canvases load in the Android app too (its requests repeat the image's `Content-Type` header, and the
-    data URL built from it did not decode).
+    data URL built from it did not decode);
+  - fonts that Excalidraw downloads load too: Trilium sets its asset path to `${location.pathname}/node_modules/...`,
+    which is `//node_modules/...` when the app is served at `/`, a URL on a host called `node_modules`; the widget
+    removes the extra slash;
+  - in landscape the tool bar's buttons sit 16 dp above the screen's bottom edge, clear of Android's gesture handle.
 - **Touch details:** a long press on an icon button shows its name (hover tooltips never appear on a touch screen);
   the note panel button has an info icon; a top-bar button works at the first tap also while a side panel is open
   (the panel closing used to move the buttons under the finger); a rail button opens its panel at the first tap also

@@ -81,6 +81,18 @@ if (typeof module !== 'undefined') module.exports = [];
         window.fetch = fetchOneType;
     }
 
+    // ---------------------------------------------------------------- canvas text: Excalidraw's fonts
+    // Trilium points Excalidraw at `${location.pathname}/node_modules/...` (Canvas.tsx). With the app served at "/"
+    // that is "//node_modules/...", which a browser reads as a URL on a host called "node_modules": Excalidraw's fonts
+    // never load and the Android app draws no canvas text at all. The value is fixed as Trilium sets it.
+    try {
+        const oneSlash = v => (typeof v === 'string' ? v.replace(/^\/{2,}(?=node_modules\/)/, '/') : v);
+        let assetPath = oneSlash(window.EXCALIDRAW_ASSET_PATH);
+        Object.defineProperty(window, 'EXCALIDRAW_ASSET_PATH', {
+            configurable: true, enumerable: true, get: () => assetPath, set: v => { assetPath = oneSlash(v); },
+        });
+    } catch (err) { /* left as Trilium sets it */ }
+
     // ---------------------------------------------------------------- canvas tools in the top bar
     const tools = document.createElement('div');
     tools.id = 'tui-canvas-tools';
@@ -258,14 +270,18 @@ if (typeof module !== 'undefined') module.exports = [];
         if (!treeOpen() && body.classList.contains('tui-search-open')) body.classList.remove('tui-search-open');
         const b = q('#launcher-pane .launcher-button.bx-sitemap');
         if (!b) return;
-        const w = document.getElementById('mobile-sidebar-wrapper');
         // also green while the tree's "+" has its New panel open in the tree's place (body.tui-new-tree)
-        b.classList.toggle('on', (!!w && !w.classList.contains('left-pane-hidden')) || body.classList.contains('tui-new-tree'));
+        b.classList.toggle('on', treeOpen() || body.classList.contains('tui-new-tree'));
     };
     // Menu and the tree share the left panel: tapping Notes while Menu is open closes Menu and shows the tree (instead
     // of toggling a tree that Menu was hiding)
     const menuOpen = () => !!q('.tn-dropdown-portal.global-menu > .dropdown-menu.show');
-    const treeOpen = () => { const w = document.getElementById('mobile-sidebar-wrapper'); return !!w && !w.classList.contains('left-pane-hidden'); };
+    // the tree is shown: landscape docks it (hidden with .left-pane-hidden), portrait slides it in over the note (.show)
+    const treeOpen = () => {
+        const w = document.getElementById('mobile-sidebar-wrapper');
+        if (!w) return false;
+        return window.innerWidth >= 992 ? !w.classList.contains('left-pane-hidden') : w.classList.contains('show');
+    };
     let swallowNotesClick = false;
     document.addEventListener('pointerdown', e => {
         if (!e.target || !e.target.closest || !e.target.closest('#launcher-pane .launcher-button.bx-sitemap')) return;
@@ -1207,6 +1223,44 @@ if (typeof module !== 'undefined') module.exports = [];
     };
     for (const type of ['shown.bs.modal', 'hidden.bs.modal']) document.addEventListener(type, syncRecentOn);
     setInterval(syncRecentOn, 300);
+    // deleted notes filled the top of Recent (struck through, each with "undelete"): two or more on a day fold into one
+    // row, "N deleted notes", that shows them; Trilium redraws the list after an undelete, so the rows are rebuilt
+    const groupDeleted = () => {
+        const panel = recentPanel();
+        if (!panel) return;
+        for (const ul of panel.querySelectorAll('.recent-changes-content ul')) {
+            const deleted = ul.querySelectorAll(':scope > li.deleted-note');
+            let row = ul.querySelector(':scope > li.tui-deleted-summary');
+            if (deleted.length < 2) {
+                row?.remove();
+                ul.classList.remove('tui-has-deleted', 'tui-show-deleted');
+                continue;
+            }
+            if (!row) {
+                row = document.createElement('li');
+                row.className = 'tui-deleted-summary';
+                row.setAttribute('role', 'button');
+                row.tabIndex = 0;
+                row.addEventListener('click', e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    ul.classList.toggle('tui-show-deleted');
+                    groupDeleted();
+                });
+            }
+            if (row.nextElementSibling !== deleted[0]) ul.insertBefore(row, deleted[0]);
+            const open = ul.classList.contains('tui-show-deleted');
+            const text = open ? 'Hide deleted notes' : `${deleted.length} deleted notes`;
+            if (row.dataset.text !== text) {
+                row.dataset.text = text;
+                row.innerHTML = `<i class="bx ${open ? 'bx-chevron-up' : 'bx-trash'}"></i><span></span>`;   // <i>: the timeline rule hides li > span::before
+                row.lastChild.textContent = text;
+                row.setAttribute('aria-expanded', String(open));
+            }
+            ul.classList.add('tui-has-deleted');
+        }
+    };
+    setInterval(groupDeleted, 300);
     document.addEventListener('click', e => {
         const t = e.target;
         if (!t || !t.closest || !wide() || !recentPanel()) return;
